@@ -26,11 +26,11 @@ setwd("D:/SCALab/projects/multi_gabor_discr/data/")
 data_preprocessed <- read_excel("preprocessed_multi_gabor_staircase.xlsx")
 
 # set size 1
-setsize1 <- subset(data_preprocessed, s_l == "setsize1")
+setsize1 <- subset(data_preprocessed, trials.setsize == 1)
 
 # other setsize
 
-data_preprocessed_exc_1 <- subset(data_preprocessed, s_l != "setsize1")
+data_preprocessed_exc_1 <- subset(data_preprocessed, trials.setsize != "setsize1")
 
 
 # all condition

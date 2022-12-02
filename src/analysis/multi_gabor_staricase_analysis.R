@@ -96,17 +96,18 @@ bxp_s1
 
 # simulate power
 
-str(data_preprocessed_exc_1)
-data_preprocessed_exc_1$s_l <- as.factor(data_preprocessed_exc_1$s_l)
-data_preprocessed_exc_1$trials.setsize <- as.factor(data_preprocessed_exc_1$trials.setsize)
-data_preprocessed_exc_1$r_t <- as.factor(data_preprocessed_exc_1$r_t)
+str(data_preprocessed)
+data_preprocessed$s_l <- as.factor(data_preprocessed$s_l)
+data_preprocessed$trials.setsize <- as.factor(data_preprocessed$trials.setsize)
+data_preprocessed$r_t <- as.factor(data_preprocessed$r_t)
 
 
 model <- lmer(trials.intensity ~ s_l * r_t * trials.setsize + 
                 (1 + r_t*s_l| participant),
-              data = data_preprocessed_exc_1)
+              data = data_preprocessed)
 
 summary(model)
+anova(model)
 
 
 model2 <- lmer(trials.intensity ~ s_l * r_t * trials.setsize + 
@@ -115,7 +116,7 @@ model2 <- lmer(trials.intensity ~ s_l * r_t * trials.setsize +
 
 summary(model2)
 
-power <- mixedpower(model = model2, data = data_preprocessed_exc_1,
+power <- mixedpower(model = model, data = data_preprocessed,
                     fixed_effects = c("s_l", "r_t", "trials.setsize"),
                     simvar = "participant", steps = c(10, 20, 30, 40, 50),
                     critical_value = 2)
