@@ -1,26 +1,100 @@
 # libraires ---------------------------------------------------------------
-library(readxl)
-library(tidyverse)
-library(ggpubr)
-library(rstatix)
-library(emmeans)
-library(sjstats)
-library(lme4)
-library(lmerTest)
-library(MuMIn)
-library(multcomp)
-library(nlme)
-library(r2glmm)
-library(ggplot2)
-library(ggthemes)
-library(svglite)
-library(sjPlot)
-library(ggpubr)
+if(!require(readxl)){
+  install.packages("readxl")
+  library(readxl)
+}
+
+if(!require(tidyverse)){
+  install.packages("tidyverse")
+  library(tidyverse)
+}
+
+if(!require(ggpubr)){
+  install.packages("ggpubr")
+  library(ggpubr)
+}
+
+if(!require(rstatix)){
+  install.packages("rstatix")
+  library(rstatix)
+}
+
+if(!require(emmeans)){
+  install.packages("emmeans")
+  library(emmeans)
+}
+
+if(!require(sjstats)){
+  install.packages("sjstats")
+  library(sjstats)
+}
+
+if(!require(sjstats)){
+  install.packages("sjstats")
+  library(sjstats)
+}
+
+if(!require(lme4)){
+  install.packages("lme4")
+  library(lme4)
+}
+
+if(!require(lmerTest)){
+  install.packages("lmerTest")
+  library(lmerTest)
+}
+
+if(!require(MuMIn)){
+  install.packages("MuMIn")
+  library(MuMIn)
+}
+
+if(!require(multcomp)){
+  install.packages("multcomp")
+  library(multcomp)
+}
+
+if(!require(nlme)){
+  install.packages("nlme")
+  library(nlme)
+}
+
+if(!require(r2glmm)){
+  install.packages("r2glmm")
+  library(r2glmm)
+}
+
+if(!require(ggplot2)){
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+
+if(!require(ggthemes)){
+  install.packages("ggthemes")
+  library(ggthemes)
+}
+
+if(!require(svglite)){
+  install.packages("svglite")
+  library(svglite)
+}
+
+if(!require(sjPlot)){
+  install.packages("sjPlot")
+  library(sjPlot)
+}
+
+if(!require(ggpubr)){
+  install.packages("ggpubr")
+  library(ggpubr)
+}
+
 
 
 # set working path
-setwd("D:/SCALab/projects/multi_gabor_discr/data/")
+getwd()
 
+setwd("C:/SCALab/projects/multi_gabor_discr/data/")
 
 # read data
 data_preprocessed <- read_excel("preprocessed_multi_gabor_staircase.xlsx")

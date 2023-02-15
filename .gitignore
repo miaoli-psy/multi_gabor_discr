@@ -85,7 +85,8 @@ vignettes/*.pdf
 # End of https://www.toptal.com/developers/gitignore/api/r
 
 # myfolders
-rawdata/
+data
+raw_data/
 slides/
 archive/
 run_gabor_staircase/
