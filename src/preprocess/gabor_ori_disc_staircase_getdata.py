@@ -60,6 +60,9 @@ if __name__ == '__main__':
     # dataframe that contains all reversal rows
     df_reversals = pd.concat(df_reversals_list)
 
+    # remove all reversals that thr = 10 (unable to do the task)
+    df_reversals.drop(df_reversals[df_reversals["trials.intensity"] == 10].index, inplace=True)
+
     df_each_pp_list = list()
     for p in participants:
         df = df_reversals[df_reversals["participant"] == p]
@@ -79,5 +82,12 @@ if __name__ == '__main__':
     insert_new_col(threshold_df, "trials.label", "r_t", get_radial_tangential_con)
     insert_new_col(threshold_df, "trials.label", "s_l", get_ladder_snake_con)
 
+    # separate into two exp
+
+    exp1_df = threshold_df[threshold_df["participant"] <= 20]
+    exp2_df = threshold_df[threshold_df["participant"] > 20]
+
+
     if to_excel:
-        threshold_df.to_excel("preprocessed_multi_gabor_staircase.xlsx", index = False)
+        exp1_df.to_excel("prprcssed_mlti_gbr_sc_1.xlsx", index = False)
+        exp2_df.to_excel("prprcssed_mlti_gbr_sc_2.xlsx", index = False)
