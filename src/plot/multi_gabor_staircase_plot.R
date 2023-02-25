@@ -98,6 +98,7 @@ setwd("C:/SCALab/projects/multi_gabor_discr/data/")
 
 # read data
 data_preprocessed <- read_excel("preprocessed_multi_gabor_staircase.xlsx")
+data_preprocessed <- read_excel("prprcssed_mlti_gbr_sc_2.xlsx")
 
 # set size 1
 setsize1 <- subset(data_preprocessed, trials.setsize == 1)
@@ -287,7 +288,7 @@ my_plot2 <-  ggplot() +
     values = c("#674EA7", "#F1C232"),
     name = "gabor type"
   ) +
-  
+
   
   scale_y_continuous(limits = c(1, 5)) +
   

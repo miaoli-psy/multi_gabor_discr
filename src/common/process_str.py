@@ -14,9 +14,9 @@ def get_radial_tangential_con(colname):
     elif "_t_" in colname:
         return "tangential"
     elif "setsize1_h" in colname:
-        return "one"
+        return "tangential"
     elif "setsize1_v" in colname:
-        return "one"
+        return "radial"
     else:
         return "check_col_name"
 
@@ -27,8 +27,8 @@ def get_ladder_snake_con(colname):
     elif "snake" in colname:
         return "snake"
     elif "setsize1_h" in colname:
-        return "one"
+        return "snake"
     elif "setsize1_v" in colname:
-        return "one"
+        return "ladder"
     else:
         return "check_col_name"
