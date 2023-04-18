@@ -22,7 +22,7 @@ library(mixedpower)
 # multi gabor staircase exp --------------------------------------
 
 # set working path
-setwd("D:/SCALab/projects/multi_gabor_discr/data/")
+setwd("c:/SCALab/projects/multi_gabor_discr/data/")
 
 
 # read data
@@ -122,5 +122,26 @@ power <- mixedpower(model = model, data = data_preprocessed,
                     critical_value = 2)
 
 
+# Visualization------------------------------------------------------
+
+# TODO
+dv <- "trials.intensity"
 
 
+# subject
+bxp <- ggboxplot(data = data_preprocessed,
+                 x = "participant",
+                 y = dv,
+                 color = "s_l") +
+  facet_wrap( ~ r_t * trials.setsize, nrow = 2, scale = "free_x")
+
+print(bxp)
+
+
+bxp2 <- ggboxplot(data = data_preprocessed,
+                 x = "participant",
+                 y = dv,
+                 color = "r_t") +
+  facet_wrap( ~ s_l, nrow = 2, scale = "free_x")
+
+print(bxp)

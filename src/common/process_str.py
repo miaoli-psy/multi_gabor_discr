@@ -32,3 +32,7 @@ def get_ladder_snake_con(colname):
         return "ladder"
     else:
         return "check_col_name"
+
+
+def get_cons(str1, str2):
+    return str1 + "_" + str2

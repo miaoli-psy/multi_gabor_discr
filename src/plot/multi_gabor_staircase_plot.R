@@ -9,10 +9,6 @@ if(!require(tidyverse)){
   library(tidyverse)
 }
 
-if(!require(ggpubr)){
-  install.packages("ggpubr")
-  library(ggpubr)
-}
 
 if(!require(rstatix)){
   install.packages("rstatix")
@@ -29,10 +25,6 @@ if(!require(sjstats)){
   library(sjstats)
 }
 
-if(!require(sjstats)){
-  install.packages("sjstats")
-  library(sjstats)
-}
 
 if(!require(lme4)){
   install.packages("lme4")
@@ -97,23 +89,26 @@ getwd()
 setwd("C:/SCALab/projects/multi_gabor_discr/data/")
 
 # read data
-data_preprocessed <- read_excel("preprocessed_multi_gabor_staircase.xlsx")
+# prprcssed_mlti_gbr_sc_1.xlsx and prprcssed_mlti_gbr_sc_2.xlsx
+
 data_preprocessed <- read_excel("prprcssed_mlti_gbr_sc_2.xlsx")
 
-# set size 1
-setsize1 <- subset(data_preprocessed, trials.setsize == 1)
+# check threshold single gabor
 
-# other setsize
-
-data_preprocessed_exc_1 <- subset(data_preprocessed, trials.setsize != "setsize1")
-
+data <- data_preprocessed %>% 
+  group_by(trials.setsize) %>% 
+  summarise(
+    threshold_mean = mean(trials.intensity),
+    threshold_std = sd(trials.intensity)
+  )
 
 # all condition
 data_by_subject <- data_preprocessed %>%
   group_by(participant,
            trials.setsize,
            r_t,
-           s_l) %>%
+           s_l,
+           condition) %>%
   summarise(
     threshold_mean = mean(trials.intensity),
     threshold_std = sd(trials.intensity),
@@ -129,7 +124,8 @@ data_by_subject <- data_preprocessed %>%
 data_across_subject <- data_preprocessed %>%
   group_by(trials.setsize,
            r_t,
-           s_l) %>%
+           s_l,
+           condition) %>%
   summarise(
     threshold_mean = mean(trials.intensity),
     threshold_std = sd(trials.intensity),
@@ -323,3 +319,92 @@ my_plot2 <-  ggplot() +
 print(my_plot2)
 
 ggsave(file = "test.svg", plot = my_plot, width = 14.7, height = 6.27, units = "in")
+
+
+my_plot3 <-  ggplot() +
+  
+  geom_point(
+    data = data_across_subject,
+    aes(
+      x = trials.setsize,
+      y = threshold_mean,
+      group = condition,
+      color = condition,
+      size = 0.5
+    ),
+    
+    position = position_dodge(0.5),
+    stat = "identity",
+    alpha = 0.6
+  ) +
+  
+  geom_point(
+    data = data_by_subject,
+    aes(
+      x = trials.setsize,
+      y = threshold_mean,
+      group = condition,
+      color = condition,
+      size = 0.5
+    ),
+    alpha = 0.05,
+    position = position_dodge(0.5)
+  ) +
+  
+  
+  geom_errorbar(
+    data = data_across_subject,
+    aes(
+      x = trials.setsize,
+      y = threshold_mean,
+      ymin = threshold_mean - threshold_SEM,
+      ymax = threshold_mean + threshold_SEM,
+      group = condition
+    ),
+    color = "black",
+    size  = 0.8,
+    width = .00,
+    alpha = 0.8,
+    position = position_dodge(0.5)
+  ) +
+  
+  
+  labs(y = "Threshold", x = "Set size") +
+  
+  # 
+  # scale_color_manual(
+  #   labels = c("radial", "tangential"),
+  #   values = c("#BB5566", "#004488"),
+  #   name = "anisotropy"
+  # ) +
+  # 
+  
+  scale_y_continuous(limits = c(1, 5)) +
+  
+  scale_x_continuous(breaks = c(1, 2, 3, 5, 7), 
+                     labels = c("1", "2", "3", "5", "7"), limits = c(0.5, 7.5))+
+  
+  theme(
+    axis.title.x = element_text(color = "black", size = 14, face = "bold"),
+    axis.title.y = element_text(color = "black", size = 14, face = "bold"),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold")
+  )
+  
+
+
+print(my_plot3)

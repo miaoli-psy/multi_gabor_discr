@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 
-from src.common.process_dataframe import insert_new_col
-from src.common.process_str import get_radial_tangential_con, get_ladder_snake_con
+from src.common.process_dataframe import insert_new_col, insert_new_col_from_two_cols
+from src.common.process_str import get_radial_tangential_con, get_ladder_snake_con, get_cons
 from src.constant.gabor_ori_disc_staricase_constant import COL_multi_gabor_staircase
 
 if __name__ == '__main__':
@@ -17,10 +17,12 @@ if __name__ == '__main__':
     # read raw data
     data_csv = [file for file in files if file.endswith(".csv")]
 
-    totalData = pd.DataFrame()
+    # all raw data into a data frme
+    df_list = list()
     for file_name in data_csv:
         data = pd.read_csv(PATH + file_name)
-        totalData = totalData.append(data)
+        df_list.append(data)
+    totalData = pd.concat(df_list)
 
     # keep valid cols
     totalData = totalData[col]
@@ -81,6 +83,8 @@ if __name__ == '__main__':
     # add useful cols
     insert_new_col(threshold_df, "trials.label", "r_t", get_radial_tangential_con)
     insert_new_col(threshold_df, "trials.label", "s_l", get_ladder_snake_con)
+
+    insert_new_col_from_two_cols(threshold_df, "r_t", "s_l", "condition", get_cons)
 
     # separate into two exp
 

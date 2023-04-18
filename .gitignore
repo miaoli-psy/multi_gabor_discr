@@ -85,12 +85,16 @@ vignettes/*.pdf
 # End of https://www.toptal.com/developers/gitignore/api/r
 
 # myfolders
-data
+data/
 raw_data/
 slides/
 archive/
 run_gabor_staircase/
 run_gabor_staircase_practice/
+run_gabor_2_tasks/
+run_gabor_2_tasks_order2/
+run_gabor_2_tasks_practice/
 pilot_gabor/
 pilot_gabor1/
 kortrijk/
+demo/
