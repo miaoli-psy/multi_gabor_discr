@@ -36,3 +36,10 @@ def get_ladder_snake_con(colname):
 
 def get_cons(str1, str2):
     return str1 + "_" + str2
+
+
+def process_unique_block_gabor3(setsize, thisN):
+    if setsize == 1:
+        return thisN + 18
+    else:
+        return thisN
