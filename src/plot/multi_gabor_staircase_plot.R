@@ -86,9 +86,9 @@ if(!require(ggpubr)){
 # set working path
 getwd()
 
-setwd("C:/SCALab/projects/multi_gabor_discr/data/")
-
+# --------------------Exp1 & Exp2 ------------------------------
 # read data
+
 # prprcssed_mlti_gbr_sc_1.xlsx and prprcssed_mlti_gbr_sc_2.xlsx
 
 data_preprocessed <- read_excel("prprcssed_mlti_gbr_sc_2.xlsx")
@@ -408,3 +408,41 @@ my_plot3 <-  ggplot() +
 
 
 print(my_plot3)
+
+# --------------------Exp3------------------------------
+
+data_preprocessed3 <- read_excel(path = file.choose())
+
+colnames(data_preprocessed3)
+
+data_by_subject3 <- data_preprocessed3 %>%
+  group_by(participant,
+           setsize,
+           s_l,
+           condition) %>%
+  summarise(
+    threshold_mean = mean(trials.intensity),
+    threshold_std = sd(trials.intensity),
+    n = n() 
+  ) %>%
+  mutate(
+    threshold_SEM = threshold_std / sqrt(n),
+    threshold_CI = threshold_SEM * qt((1 - 0.05) / 2 + .5, n - 1)
+  )
+
+
+
+data_across_subject <- data_preprocessed %>%
+  group_by(trials.setsize,
+           r_t,
+           s_l,
+           condition) %>%
+  summarise(
+    threshold_mean = mean(trials.intensity),
+    threshold_std = sd(trials.intensity),
+    n = n() 
+  ) %>%
+  mutate(
+    threshold_SEM = threshold_std / sqrt(n),
+    threshold_CI = threshold_SEM * qt((1 - 0.05) / 2 + .5, n - 1)
+  )
