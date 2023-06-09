@@ -18,6 +18,11 @@ if __name__ == '__main__':
 
     # full conditions
     insert_new_col(totalData, "label", "s_l", get_ladder_snake_con)
+<<<<<<< HEAD
+=======
+    insert_new_col(totalData, "label", "r_t", get_radial_tangential_con)
+    insert_new_col_from_two_cols(totalData, "r_t", "s_l", "condition", get_cons)
+>>>>>>> 4b8a4b924d8e8825805f6269518fe40d8dc8945d
 
     # correct blockN
     insert_new_col_from_two_cols(totalData, "setsize", "thisN", "blockN", process_unique_block_gabor3)
