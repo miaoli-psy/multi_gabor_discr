@@ -11,7 +11,7 @@ setwd("D:/OneDrive/projects/multi_gabor_discr/data/gabor3_raw_data/")
 path <- "D:/OneDrive/projects/multi_gabor_discr/data/gabor3_raw_data/"
 
 # list files
-list_csv_files <- list.files(path = path)
+list_csv_files <- list.files(path = path, pattern='gabor_discri_2tasks')
 
 # read data into one df
 my_data <- do.call(rbind, lapply(list_csv_files, function(x) read.csv(x, stringsAsFactors = FALSE)))
@@ -27,6 +27,7 @@ kept_cols <- c(
   "blocks_setsize1.thisIndex",
   "blocks_setsize1.thisTrialN",
   "key_pressed1",
+  "key_pressed13",
   "trials.label",
   "trials.setsize",
   "trials.direction",
@@ -69,6 +70,9 @@ my_data2 <- my_data %>%
          intensity = case_when(!is.na(trials.intensity) ~trials.intensity,
                              !is.na(trials_2.intensity) ~trials_2.intensity,
                              TRUE ~ NA),
+         ans_same = case_when(order == 1 ~ key_pressed1,
+                              order == 2 ~ key_pressed13,
+                              TRUE ~ NA)
          )
 
 my_data3 <- subset(my_data2, !is.na(label))
@@ -88,7 +92,8 @@ kept_cols2 <- c(
   "participant",
   "order",
   "age",
-  "sex"
+  "sex",
+  "ans_same"
 )
 
 my_data3 <- my_data3[kept_cols2]
