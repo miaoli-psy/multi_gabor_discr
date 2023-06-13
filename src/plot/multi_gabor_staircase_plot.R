@@ -637,7 +637,7 @@ plt_percent_no <- ggplot() +
     ),
     position = position_dodge(0.8),
     stat = "identity",
-    alpha = 0.1) +
+    alpha = 0.) +
   
   labs(y = "Percent no", x = "Set size") +
   
