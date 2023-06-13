@@ -581,6 +581,7 @@ bxp <- ggboxplot(data = res,
                  color = "s_l")
 print(bxp)
 
+
 res_across_pp <- res %>% 
   group_by(setsize,
            s_l) %>% 
@@ -591,6 +592,8 @@ res_across_pp <- res %>%
     perent_no_SEM = percent_no_sd / sqrt (n),
     percent_no_CI = perent_no_SEM * qt((1-0.05)/2 +.5, n -1)
   )
+
+
 
 
 plt_percent_no <- ggplot() +
@@ -622,6 +625,19 @@ plt_percent_no <- ggplot() +
     width = .00,
     position = position_dodge(0.8)
   ) +
+  
+  geom_point(
+    data = res,
+    aes(
+      x = setsize,
+      y = percentage_no,
+      group = s_l,
+      color = s_l,
+      size = 0.5
+    ),
+    position = position_dodge(0.8),
+    stat = "identity",
+    alpha = 0.1) +
   
   labs(y = "Percent no", x = "Set size") +
   
