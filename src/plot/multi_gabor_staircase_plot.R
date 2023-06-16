@@ -89,13 +89,14 @@ if(!require(dplyr)){
 
 # set working path
 getwd()
+setwd("d:/OneDrive/projects/multi_gabor_discr/src/plot/")
 
 # --------------------Exp1 & Exp2 ------------------------------
 # read data
 
 # prprcssed_mlti_gbr_sc_1.xlsx and prprcssed_mlti_gbr_sc_2.xlsx
 
-data_preprocessed <- read_excel("prprcssed_mlti_gbr_sc_2.xlsx")
+data_preprocessed <- read_excel(path = file.choose())
 
 # check threshold single gabor
 
@@ -341,6 +342,22 @@ my_plot3 <-  ggplot() +
     stat = "identity",
     alpha = 0.6
   ) +
+  
+  
+  stat_smooth(
+    data = data_across_subject,
+    aes(
+      x = trials.setsize,
+      y = threshold_mean,
+      group = condition,
+      color = condition
+    ),
+    method = "lm",
+    size = 3,
+    se = FALSE,
+    alpha = 0.1,
+    geom = "line"
+  )+
   
   geom_point(
     data = data_by_subject,
