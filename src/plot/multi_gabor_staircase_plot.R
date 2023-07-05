@@ -1,102 +1,42 @@
 # libraires ---------------------------------------------------------------
-if(!require(readxl)){
-  install.packages("readxl")
-  library(readxl)
-}
+# install.packages("readxl",
+#                  "dplyr",
+#                  "tidyverse",
+#                  "sjPlot",
+#                  "glmmTMB",
+#                  "rstatix",
+#                  "emmeans",
+#                  "sjstats",
+#                  "MuMIn",
+#                  "multcomp",
+#                  "nlme",
+#                  "r2glmm",
+#                  "ggplot2",
+#                  "ggthemes",
+#                  "svglite",
+#                  "ggpubr")
+# 
 
-if(!require(tidyverse)){
-  install.packages("tidyverse")
-  library(tidyverse)
-}
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(svglite)
+library(ggpubr)
 
-
-if(!require(rstatix)){
-  install.packages("rstatix")
-  library(rstatix)
-}
-
-if(!require(emmeans)){
-  install.packages("emmeans")
-  library(emmeans)
-}
-
-if(!require(sjstats)){
-  install.packages("sjstats")
-  library(sjstats)
-}
-
-
-if(!require(lme4)){
-  install.packages("lme4")
-  library(lme4)
-}
-
-if(!require(lmerTest)){
-  install.packages("lmerTest")
-  library(lmerTest)
-}
-
-if(!require(MuMIn)){
-  install.packages("MuMIn")
-  library(MuMIn)
-}
-
-if(!require(multcomp)){
-  install.packages("multcomp")
-  library(multcomp)
-}
-
-if(!require(nlme)){
-  install.packages("nlme")
-  library(nlme)
-}
-
-if(!require(r2glmm)){
-  install.packages("r2glmm")
-  library(r2glmm)
-}
-
-if(!require(ggplot2)){
-  install.packages("ggplot2")
-  library(ggplot2)
-}
-
-if(!require(ggthemes)){
-  install.packages("ggthemes")
-  library(ggthemes)
-}
-
-if(!require(svglite)){
-  install.packages("svglite")
-  library(svglite)
-}
-
-if(!require(sjPlot)){
-  install.packages("sjPlot")
-  library(sjPlot)
-}
-
-if(!require(ggpubr)){
-  install.packages("ggpubr")
-  library(ggpubr)
-}
-
-
-if(!require(dplyr)){
-  install.packages("dplyr")
-  library(dplyr)
-}
-
-# set working path
+# set working path---------------------------------------------------------
 getwd()
 setwd("d:/OneDrive/projects/multi_gabor_discr/src/plot/")
 
-# --------------------Exp1 & Exp2 ------------------------------
+# --------------------Exp1 & Exp2 -----------------------------------------
 # read data
 
 # prprcssed_mlti_gbr_sc_1.xlsx and prprcssed_mlti_gbr_sc_2.xlsx
 
-data_preprocessed <- read_excel(path = file.choose())
+data_exp1 <- readxl::read_excel(path = file.choose())
+data_exp2 <- readxl::read_excel(path = file.choose())
+
+# data_preprocessed <- data_exp1
+data_preprocessed <- data_exp2
 
 # check threshold single gabor
 
@@ -286,7 +226,7 @@ my_plot2 <-  ggplot() +
   
   scale_color_manual(
     labels = c("ladder", "snake"),
-    values = c("#674EA7", "#F1C232"),
+    values = c("#674EA7", "#F28522"), #DDAA33
     name = "gabor type"
   ) +
 
@@ -323,7 +263,7 @@ my_plot2 <-  ggplot() +
 
 print(my_plot2)
 
-ggsave(file = "test.svg", plot = my_plot, width = 14.7, height = 6.27, units = "in")
+# ggsave(file = "test.svg", plot = my_plot, width = 14.7, height = 6.27, units = "in")
 
 
 my_plot3 <-  ggplot() +
@@ -355,23 +295,23 @@ my_plot3 <-  ggplot() +
     method = "lm",
     size = 3,
     se = FALSE,
-    alpha = 0.1,
+    alpha = 0.5,
     geom = "line"
   )+
   
-  geom_point(
-    data = data_by_subject,
-    aes(
-      x = trials.setsize,
-      y = threshold_mean,
-      group = condition,
-      color = condition,
-      size = 0.5
-    ),
-    alpha = 0.05,
-    position = position_dodge(0.5)
-  ) +
-  
+  # geom_point(
+  #   data = data_by_subject,
+  #   aes(
+  #     x = trials.setsize,
+  #     y = threshold_mean,
+  #     group = condition,
+  #     color = condition,
+  #     size = 0.5
+  #   ),
+  #   alpha = 0.05,
+  #   position = position_dodge(0.5)
+  # ) +
+  # 
   
   geom_errorbar(
     data = data_across_subject,
@@ -380,9 +320,9 @@ my_plot3 <-  ggplot() +
       y = threshold_mean,
       ymin = threshold_mean - threshold_SEM,
       ymax = threshold_mean + threshold_SEM,
-      group = condition
+      group = condition,
+      color = condition
     ),
-    color = "black",
     size  = 0.8,
     width = .00,
     alpha = 0.8,
@@ -390,17 +330,17 @@ my_plot3 <-  ggplot() +
   ) +
   
   
-  labs(y = "Threshold", x = "Set size") +
+  labs(y = "Threshold (°)", x = "Set size") +
   
-  # 
-  # scale_color_manual(
-  #   labels = c("radial", "tangential"),
-  #   values = c("#BB5566", "#004488"),
-  #   name = "anisotropy"
-  # ) +
-  # 
-  
-  scale_y_continuous(limits = c(1, 5)) +
+
+  scale_color_manual(
+    labels = c("radial_ladder", "radial_snake", "tangential_ladder", "tangential_snake" ),
+    values = c("#BB5566", "#674EA7", "#004488", "#F28522"), #DDAA33
+    name = "anisotropy"
+  ) +
+
+
+  scale_y_continuous(limits = c(1, 3.5)) +
   
   scale_x_continuous(breaks = c(1, 2, 3, 5, 7), 
                      labels = c("1", "2", "3", "5", "7"), limits = c(0.5, 7.5))+
@@ -421,7 +361,8 @@ my_plot3 <-  ggplot() +
     axis.text.y = element_text(size = 12, face = "bold"),
     # legend size
     legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 10),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(1, 'cm'),
     # facet wrap title
     strip.text.x = element_text(size = 12, face = "bold")
   )
@@ -430,9 +371,11 @@ my_plot3 <-  ggplot() +
 
 print(my_plot3)
 
+ggsave(file = "test.svg", plot = my_plot3, width = 5, height = 4.5, units = "in")
+
 # --------------------Exp3--gabor ori threshold-------------------------
 
-data_preprocessed3 <- read_excel(path = file.choose())
+data_preprocessed3 <- readxl::read_excel(path = file.choose())
 
 colnames(data_preprocessed3)
 
@@ -483,19 +426,34 @@ my_plot4 <-  ggplot() +
     alpha = 0.6
   ) +
   
-  geom_point(
-    data = data_by_subject3,
+  # geom_point(
+  #   data = data_by_subject3,
+  #   aes(
+  #     x = setsize,
+  #     y = threshold_mean,
+  #     group = s_l,
+  #     color = s_l,
+  #     size = 0.5
+  #   ),
+  #   alpha = 0.05,
+  #   position = position_dodge(0.5)
+  # ) +
+
+  stat_smooth(
+    data = data_across_subject3,
     aes(
       x = setsize,
       y = threshold_mean,
       group = s_l,
-      color = s_l,
-      size = 0.5
+      color = s_l
     ),
-    alpha = 0.05,
-    position = position_dodge(0.5)
-  ) +
-  
+    method = "lm",
+    size = 3,
+    se = FALSE,
+    alpha = 0.5,
+    geom = "line"
+  )+
+    
   
   geom_errorbar(
     data = data_across_subject3,
@@ -504,9 +462,9 @@ my_plot4 <-  ggplot() +
       y = threshold_mean,
       ymin = threshold_mean - threshold_SEM,
       ymax = threshold_mean + threshold_SEM,
-      group = s_l
+      group = s_l,
+      color = s_l
     ),
-    color = "black",
     size  = 0.8,
     width = .00,
     alpha = 0.8,
@@ -514,20 +472,20 @@ my_plot4 <-  ggplot() +
   ) +
   
   
-  labs(y = "Threshold", x = "Set size") +
+  labs(y = "Threshold (°)", x = "Set size") +
   
   
   scale_color_manual(
     labels = c("ladder", "snake"),
-    values = c("#674EA7", "#F1C232"),
+    values = c("#BB5566", "#674EA7"),
     name = "gabor type"
   ) +
   
   
-  scale_y_continuous(limits = c(1, 5)) +
+  scale_y_continuous(limits = c(1, 3.5)) +
   
   scale_x_continuous(breaks = c(1, 2, 3, 5), 
-                     labels = c("1", "2", "3", "5"), limits = c(0.5, 7.5))+
+                     labels = c("1", "2", "3", "5"), limits = c(0.5, 5.5))+
   
   theme(
     axis.title.x = element_text(color = "black", size = 14, face = "bold"),
@@ -545,14 +503,15 @@ my_plot4 <-  ggplot() +
     axis.text.y = element_text(size = 12, face = "bold"),
     # legend size
     legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 10),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(1, 'cm'),
     # facet wrap title
     strip.text.x = element_text(size = 12, face = "bold")
   ) 
 
 print(my_plot4)
 
-
+# ggsave(file = "test.svg", plot = my_plot4, width = 4.5, height = 4, units = "in")
 # --------------------Exp3--gabor same or not judgment-----------------------
 
 # exclude set size 1, no discrimination task
@@ -643,25 +602,45 @@ plt_percent_no <- ggplot() +
     position = position_dodge(0.8)
   ) +
   
-  geom_point(
-    data = res,
+  stat_smooth(
+    data = res_across_pp,
     aes(
       x = setsize,
-      y = percentage_no,
+      y = percent_no_mean,
       group = s_l,
-      color = s_l,
-      size = 0.5
+      color = s_l
     ),
-    position = position_dodge(0.8),
-    stat = "identity",
-    alpha = 0.) +
+    method = "lm",
+    size = 3,
+    se = FALSE,
+    alpha = 0.5,
+    geom = "line"
+  )+
   
-  labs(y = "Percent no", x = "Set size") +
+  # geom_point(
+  #   data = res,
+  #   aes(
+  #     x = setsize,
+  #     y = percentage_no,
+  #     group = s_l,
+  #     color = s_l,
+  #     size = 0.5
+  #   ),
+  #   position = position_dodge(0.8),
+  #   stat = "identity",
+  #   alpha = 0.1) +
+  
+  labs(y = "Percentage of 'No' responses", x = "Set size") +
+  
+  scale_y_continuous(limits = c(0, 75)) +
+  
+  scale_x_continuous(breaks = c(2, 3, 5), 
+                     labels = c("2", "3", "5"), limits = c(1.5, 5.5))+
   
   
   scale_color_manual(
     labels = c("ladder", "snake"),
-    values = c("#674EA7", "#F1C232"),
+    values = c("#BB5566", "#674EA7"),
     name = "gabor type"
   ) +
   
@@ -697,3 +676,5 @@ plt_percent_no <- ggplot() +
 
 
 print(plt_percent_no)  
+
+# ggsave(file = "test.svg", plot = plt_percent_no, width = 4.5, height = 4, units = "in")
