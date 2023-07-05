@@ -72,7 +72,7 @@ anova(model.full, model.reduced)
 
 # pairwise comparisons
 emms <- emmeans(
-  model.full,
+  model.full.interaction,
   list(pairwise ~ condition),
   adjust = "tukey"
 )
@@ -150,16 +150,17 @@ data3_excl1$setsize <- as.integer(data3_excl1$setsize)
 
 # model.glmer.interaction <-glmer(ans ~ setsize * s_l + setsize + s_l + (1 + s_l | participant), data = data3_excl1, family = binomial)
 model.glmer.full <-glmer(ans ~ setsize + s_l + (1 + s_l | participant), data = data3_excl1, family = binomial)
+model.glmer.reduced <-glmer(ans ~ setsize  + (1 + s_l | participant), data = data3_excl1, family = binomial)
 
 summary(model.glmer.full)
-
+anova(model.glmer.full, model.glmer.reduced)
 # anova(model.glmer.interaction, model.glmer.full)
 
 # pairwise com
 emms <- emmeans(
   model.glmer.full,
   list(pairwise ~ s_l),
-  adjust = "tukey",
+  adjust = "tukey"
 )
 
 summary(emms)
