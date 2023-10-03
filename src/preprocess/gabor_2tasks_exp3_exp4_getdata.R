@@ -9,7 +9,11 @@ library(ggplot2)
 library(tidyverse)
 # ---------------read data -----------------------
 
+<<<<<<< HEAD
 exp <- "exp3"
+=======
+exp <- "exp4"
+>>>>>>> b65b5f4b90b3f4b1558fc670af298f39041301e4
 
 if (exp == "exp3") {
   # set working path
