@@ -9,9 +9,20 @@ library(ggplot2)
 library(tidyverse)
 # ---------------read data -----------------------
 
-# set working path
-setwd("D:/OneDrive/projects/multi_gabor_discr/data/gabor3_raw_data/")
-path <- "D:/OneDrive/projects/multi_gabor_discr/data/gabor3_raw_data/"
+exp <- "exp3"
+
+if (exp == "exp3") {
+  # set working path
+  setwd("D:/OneDrive/projects/multi_gabor_discr/data/gabor3_raw_data/")
+  path <- "D:/OneDrive/projects/multi_gabor_discr/data/gabor3_raw_data/"
+  
+} else if (exp == "exp4") {
+  setwd("D:/OneDrive/projects/multi_gabor_discr/data/raw_data_colored_gabor_exp4/")
+  path <- "D:/OneDrive/projects/multi_gabor_discr/data/raw_data_colored_gabor_exp4/"
+  
+} else {
+  cat("invalid experiment selection-choose 'exp3' or 'exp4'.")
+}
 
 # read data into one df if each sigle file has the same data structure
 # list files
@@ -50,7 +61,13 @@ kept_cols <- c(
 # empty list to store data
 dfs <- list()
 
-list_csv_files <- list.files(path = path, pattern='gabor_discri_2tasks')
+
+if (exp == "exp3"){
+  list_csv_files <- list.files(path = path, pattern='_gabor_discri_2tasks')
+} else if (exp == "exp4"){
+  list_csv_files <- list.files(path = path, pattern='_colored_gabor') 
+}
+
 
 # Loop through each file in the list
 for (file in list_csv_files) {
@@ -142,7 +159,12 @@ my_data3 <- my_data3 %>%
   )
 
 # write to .csv
-write.csv(my_data3, file = "gabor3_data.csv", row.names = FALSE)
+if (exp == "exp3"){
+  write.csv(my_data3, file = "gabor_2tasks_exp3_alldata.csv", row.names = FALSE)
+} else if (exp == "exp4"){
+  write.csv(my_data3, file = "gabor_colored_exp4_alldata.csv", row.names = FALSE)
+}
+
 
 
 #### check raw data by participant ####
