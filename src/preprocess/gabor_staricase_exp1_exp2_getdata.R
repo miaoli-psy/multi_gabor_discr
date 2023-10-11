@@ -5,7 +5,7 @@ library(ggplot2)
 
 # ---------------read data------------------------
 
-exp <- "exp1"
+exp <- "exp2"
 
 # set working path
 setwd("D:/OneDrive/projects/multi_gabor_discr/data/raw_data_exp1_exp2/")
@@ -63,6 +63,7 @@ my_data <- my_data %>%
     )
   )
 
+
 # add gabor arrangment
 my_data <- my_data %>%
   mutate(
@@ -74,6 +75,9 @@ my_data <- my_data %>%
       TRUE ~ NA_character_  # This line is for any other unexpected cases
     )
   )
+
+# add full condition
+my_data$full_condition <- paste(my_data$gabor_type, my_data$gabor_arrangment, sep = "_")
 
 
 # drop rows that contains NA or empty
