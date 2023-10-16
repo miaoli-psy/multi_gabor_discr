@@ -49,7 +49,7 @@ if __name__ == '__main__':
     df_reversals = pd.concat(df_reversals_list)
 
     # remove all reversals that thr = 10 (unable to do the task)
-    df_reversals.drop(df_reversals[df_reversals["intensity"] == 10].index, inplace=True)
+    # df_reversals.drop(df_reversals[df_reversals["intensity"] == 10].index, inplace=True)
 
     df_each_pp_list = list()
     for p in participants:

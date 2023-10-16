@@ -10,7 +10,7 @@ library(tidyverse)
 # ---------------read data -----------------------
 
 
-exp <- "exp3"
+exp <- "exp4"
 
 if (exp == "exp3") {
   # set working path
@@ -34,7 +34,9 @@ if (exp == "exp3") {
 # col_names <- data.frame(colnames(my_data))
 
 # keep col by name
-kept_cols <- c(
+
+# Common columns for both experiments
+common_cols <- c(
   "blocks.thisN",
   "blocks.thisIndex",
   "blocks.thisTrialN",
@@ -58,6 +60,17 @@ kept_cols <- c(
   "age",
   "sex"
 )
+
+# Specific columns for each experiment
+exp_specific_cols <- list(
+  exp3 = character(0), # No specific columns for exp3
+  exp4 = c("color_random_float",
+           "color_random_float_ss1")
+  )
+
+# Use the common columns and append any specific columns based on the experiment type
+kept_cols <- c(common_cols, exp_specific_cols[[exp]])
+
 
 # empty list to store data
 dfs <- list()
@@ -117,6 +130,22 @@ my_data2 <- my_data %>%
          )
 
 
+if (exp == "exp4") {
+  my_data2 <- my_data2 %>%
+    mutate(
+      innermost_color_float = case_when(
+        !is.na(color_random_float) ~ color_random_float,!is.na(color_random_float_ss1) ~ color_random_float_ss1
+      )
+    )
+  
+  my_data2 <- my_data2 %>%
+    mutate(
+      innermost_color = ifelse(innermost_color_float <= 0.5, "red", "green")
+    )
+}
+
+
+
 # get the rows that are in main exp
 my_data3 <- subset(my_data2, !is.na(label))
 
@@ -125,7 +154,7 @@ colnames(my_data3)
 
 
 # kept columns
-kept_cols2 <- c(
+common_cols2 <- c(
   "label",
   "thisN",
   "thisIndex",
@@ -139,6 +168,13 @@ kept_cols2 <- c(
   "sex",
   "ans_same"
 )
+
+exp_specific_cols2 <- list(
+  exp3 = character(0), # No specific columns for exp3
+  exp4 = "innermost_color"
+  )
+
+kept_cols2 <- c(common_cols2, exp_specific_cols2[[exp]])
 
 
 my_data3 <- my_data3[kept_cols2]
@@ -169,7 +205,7 @@ if (exp == "exp3"){
 
 
 #### check raw data by participant ####
-my_data_p<- subset(my_data3, participant == 22)
+my_data_p<- subset(my_data3, participant == 1)
 
 # add trial number for each block, column reset for each unique value of "thisN" and "label"
 my_data_p <- my_data_p %>%
