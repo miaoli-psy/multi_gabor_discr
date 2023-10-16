@@ -6,24 +6,21 @@ from src.common.process_str import get_ladder_snake_con, get_radial_tangential_c
 
 if __name__ == '__main__':
     to_excel = False
+    exp = "exp4"
 
-    PATH = "../../data/gabor3_raw_data/"
-    file_name = "gabor3_data.csv"
+    PATH = "../../data/"
+    if exp == "exp3":
+        DATA_FILE = "gabor_2tasks_exp3_alldata.csv"
+    elif exp == "exp4":
+        DATA_FILE = "gabor_colored_exp4_alldata.csv"
 
     # read data (pre-pre processed in R)
-    totalData = pd.read_csv(PATH + file_name, sep = ",")
+    totalData = pd.read_csv(PATH + DATA_FILE, sep = ",")
 
-    # remove unnamed col
-    totalData = totalData.loc[:, ~totalData.columns.str.contains('^Unnamed')]
-
-    # full conditions
-    insert_new_col(totalData, "label", "s_l", get_ladder_snake_con)
-    # correct blockN
-    insert_new_col_from_two_cols(totalData, "setsize", "thisN", "blockN", process_unique_block_gabor3)
 
     # get unique values for participants and block number from df
     participants = list(totalData['participant'].unique())
-    blockN = list(totalData["blockN"].unique())
+    blockN = list(totalData["thisN"].unique())
 
     # trial direction list
     direction_list = list()
@@ -59,7 +56,7 @@ if __name__ == '__main__':
         df = df_reversals[df_reversals["participant"] == p]
         rever_list = list()
         for b in blockN:
-            df_b = df[df["blockN"] == b]
+            df_b = df[df["thisN"] == b]
             # get nback reversal n == 6 (the last 6 row of the df)
             df_rever = df_b.iloc[-6:]
             rever_list.append(df_rever)
@@ -70,4 +67,7 @@ if __name__ == '__main__':
     threshold_df = pd.concat(df_each_pp_list)
 
     if to_excel:
-        threshold_df.to_excel("prprcssed_mlti_gbr_sc_3.xlsx", index = False)
+        if exp == "exp3":
+            threshold_df.to_excel("gbr_sc_threshold3.xlsx", index = False)
+        elif exp == "exp4":
+            threshold_df.to_excel("gbr_sc_threshold4.xlsx", index=False)
