@@ -724,7 +724,7 @@ alldata_exp3 <- read_csv(file.choose())
 alldata_exp4 <- read_csv(file.choose())
 
 exp <- "exp4"
-check_intensity_group <- TRUE
+check_intensity_group <- FALSE
 
 if (exp == "exp3") {
   data_excl1 <- alldata_exp3
@@ -916,6 +916,7 @@ labs(y = "Percentage of 'No' responses", x = "Set size") +
     panel.spacing = unit(1.0, "lines")
   )
 
+plt_percent_no
 
 if (check_intensity_group){
   plt_percent_no <- plt_percent_no +  facet_wrap(~intensity_group,
@@ -937,3 +938,154 @@ if (check_intensity_group){
 print(plt_percent_no)
 
 # ggsave(file = "test.svg", plot = plt_percent_no, width = 4.5, height = 4, units = "in")
+
+# --------------------Exp5 --adjust gabor-----------------------
+
+# gabor_adjst_ori_alldata.csv
+alldata_exp5 <- read_csv(file.choose())
+
+
+data_across_subject5 <- alldata_exp5 %>%
+  group_by(label, abs_ori) %>%
+  summarise(
+    dev_inner_mean = mean(dev_innermost),
+    dev_midd_mean = mean(dev_midd),
+    dev_outer_mean = mean(dev_outermost))
+
+
+data_across_subject5_long <-
+  melt(
+    data_across_subject5,
+    id.vars = c("label", "abs_ori"),
+    variable.name = "dev"
+  )
+
+data_across_subject5_long[, 'value'] = round(data_across_subject5_long[, 'value'], 2)
+
+
+heatmap <- ggplot(data_across_subject5_long, aes(dev, abs_ori)) +
+  
+  geom_tile(aes(fill = value), color = "grey") +
+  
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  
+  geom_text(aes(label = value)) +
+  
+  scale_y_continuous(name = "",
+                     breaks = c(2, 4, 10),
+                     labels = c("2", "4", "10"), limits = c(0, 12))+
+  
+  scale_x_discrete(name = "",
+                   labels=c("dev_inner_mean" = "innermost",
+                            "dev_midd_mean" = "middle",
+                            "dev_outer_mean" = "outermost"))+
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  
+  facet_wrap(~ label)
+  
+heatmap
+
+# heatmap by participant
+
+data_by_subject5 <- alldata_exp5 %>%
+  group_by(label, abs_ori, participant) %>%
+  summarise(
+    dev_inner_mean = mean(dev_innermost),
+    dev_midd_mean = mean(dev_midd),
+    dev_outer_mean = mean(dev_outermost))
+
+
+data_by_subject5_long <-
+  melt(
+    data_by_subject5,
+    id.vars = c("label", "abs_ori", "participant"),
+    variable.name = "dev"
+  )
+
+# TODO
+pp <- 20
+
+data_single_p <- subset(data_by_subject5_long, participant == pp)
+
+
+heatmap_by_pp <- ggplot(data_single_p, aes(dev, abs_ori)) +
+  
+  geom_tile(aes(fill = value), color = "grey") +
+  
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  
+  geom_text(aes(label = value)) +
+  
+  scale_y_continuous(name = "",
+                     breaks = c(2, 4, 10),
+                     labels = c("2", "4", "10"), limits = c(0, 12))+
+  
+  scale_x_discrete(name = "",
+                   labels=c("dev_inner_mean" = "innermost",
+                            "dev_midd_mean" = "middle",
+                            "dev_outer_mean" = "outermost"))+
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  
+  facet_wrap(~ label)
+
+heatmap_by_pp
