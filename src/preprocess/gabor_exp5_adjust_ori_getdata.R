@@ -98,5 +98,8 @@ my_data$dev_innermost = my_data$inner_resp - my_data$ori
 my_data$dev_midd = my_data$midd_resp - my_data$ori
 my_data$dev_outermost = my_data$outer_resp - my_data$ori
 
+
+# cal reversals
+my_data$n_reversals <- rowSums(my_data[, c("dev_innermost", "dev_midd", "dev_outermost")] < 0)
 # write to .csv
 write.csv(my_data, file = "gabor_adjst_ori_alldata.csv", row.names = FALSE)
