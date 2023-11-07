@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # add col "resp_type": if all 3 resps
     insert_new_col_from_four_cols(my_data, "cw_ccw", "inner_resp", "midd_resp", "outer_resp", "resp_type",
                                   get_resp_type)
-    # add col "non_uniformity_sum_abs"
+    # add col "resp_variance"
     insert_new_col_from_two_cols(my_data, "inner_resp", "midd_resp", "resp_variance_a",
                                  get_abs_value_diff)
     insert_new_col_from_two_cols(my_data, "midd_resp", "outer_resp", "resp_variance_b",

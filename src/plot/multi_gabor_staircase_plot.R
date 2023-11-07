@@ -36,7 +36,7 @@ data_exp1 <- readxl::read_excel(path = file.choose())
 data_exp2 <- readxl::read_excel(path = file.choose())
 
 # data_preprocessed <- data_exp1
-data_preprocessed <- data_exp1
+data_preprocessed <- data_exp2
 
 # check threshold single gabor
 
@@ -472,8 +472,8 @@ print(my_plot3.0)
 data_exp3 <- readxl::read_excel(path = file.choose())
 data_exp4 <- readxl::read_excel(path = file.choose())
 
-exp <- "exp3"
-check_exp4_innermost_color <- FALSE
+exp <- "exp4"
+check_exp4_innermost_color <- TRUE
 
 if (exp == "exp3") {
   data_preprocessed3 <- data_exp3
@@ -922,16 +922,16 @@ if (check_intensity_group){
   plt_percent_no <- plt_percent_no +  facet_wrap(~intensity_group,
                                                  labeller = labeller(
                                                    intensity_group = 
-                                                     c("1" = "thrsld <= 1",
-                                                       "2" = "1< thrsld <= 2",
-                                                       "3" = "2< thrsld <= 3",
-                                                       "4" = "3< thrsld <= 4",
-                                                       "5" = "4< thrsld <= 5",
-                                                       "6" = "5< thrsld <= 6",
-                                                       "7" = "6< thrsld <= 7",
-                                                       "8" = "7< thrsld <= 8",
-                                                       "9" = "8< thrsld <= 9",
-                                                       "10" = "9< thrsld <= 10")
+                                                     c("1" = "ori <= 1",
+                                                       "2" = "1< ori <= 2",
+                                                       "3" = "2< ori <= 3",
+                                                       "4" = "3< ori <= 4",
+                                                       "5" = "4< ori <= 5",
+                                                       "6" = "5< ori <= 6",
+                                                       "7" = "6< ori <= 7",
+                                                       "8" = "7< ori <= 8",
+                                                       "9" = "8< ori <= 9",
+                                                       "10" = "9< ori <= 10")
                                                  ))
 }
   
@@ -941,10 +941,11 @@ print(plt_percent_no)
 
 # --------------------Exp5 --adjust gabor-----------------------
 
-# gabor_adjst_ori_alldata.csv
+# gabor_adjst_ori_alldata2.csv
 alldata_exp5 <- read_csv(file.choose())
 
 
+# get data for heatmap - dev
 data_across_subject5 <- alldata_exp5 %>%
   group_by(label, abs_ori) %>%
   summarise(
@@ -963,7 +964,28 @@ data_across_subject5_long <-
 data_across_subject5_long[, 'value'] = round(data_across_subject5_long[, 'value'], 2)
 
 
-heatmap <- ggplot(data_across_subject5_long, aes(dev, abs_ori)) +
+# get data for heatmap - resp
+
+data_across_subject5.0 <- alldata_exp5 %>%
+  group_by(label, ori) %>%
+  summarise(
+    inner_mean = mean(inner_resp),
+    midd_mean = mean(midd_resp),
+    outer_mean = mean(outer_resp))
+
+
+data_across_subject5.0_long <-
+  melt(
+    data_across_subject5.0,
+    id.vars = c("label", "ori"),
+    variable.name = "resp"
+  )
+
+data_across_subject5.0_long[, 'value'] = round(data_across_subject5.0_long[, 'value'], 2)
+
+
+# heatmap for dev
+heatmap_dev <- ggplot(data_across_subject5_long, aes(dev, abs_ori)) +
   
   geom_tile(aes(fill = value), color = "grey") +
   
@@ -971,11 +993,11 @@ heatmap <- ggplot(data_across_subject5_long, aes(dev, abs_ori)) +
   
   geom_text(aes(label = value)) +
   
-  scale_y_continuous(name = "",
+  scale_y_continuous(name = "Orientation(°)",
                      breaks = c(2, 4, 10),
                      labels = c("2", "4", "10"), limits = c(0, 12))+
   
-  scale_x_discrete(name = "",
+  scale_x_discrete(name = "Gabor position",
                    labels=c("dev_inner_mean" = "innermost",
                             "dev_midd_mean" = "middle",
                             "dev_outer_mean" = "outermost"))+
@@ -1013,7 +1035,61 @@ heatmap <- ggplot(data_across_subject5_long, aes(dev, abs_ori)) +
   
   facet_wrap(~ label)
   
-heatmap
+heatmap_dev
+
+
+# heatmap for dev
+heatmap_resp <- ggplot(data_across_subject5.0_long, aes(resp, ori)) +
+  
+  geom_tile(aes(fill = value), color = "grey") +
+  
+  scale_fill_gradient(low = "yellow", high = "red") +
+  
+  geom_text(aes(label = value)) +
+  
+  scale_y_continuous(name = "Orientation(°)",
+                     breaks = c(-10, -4, -2, 2, 4, 10),
+                     labels = c("-10", "-4", "-2", "2", "4", "10"), limits = c(-12, 12))+
+  
+  scale_x_discrete(name = "Gabor position",
+                   labels=c("inner_mean" = "innermost",
+                            "midd_mean" = "middle",
+                            "outer_mean" = "outermost"))+
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  
+  facet_wrap(~ label)
+
+heatmap_resp
 
 # heatmap by participant
 
@@ -1089,3 +1165,248 @@ heatmap_by_pp <- ggplot(data_single_p, aes(dev, abs_ori)) +
   facet_wrap(~ label)
 
 heatmap_by_pp
+
+# check resp type
+
+check_data <- alldata_exp5 %>% 
+  filter(grepl("^setsize3", label))
+
+check_data_across_pp <- check_data %>% 
+  group_by(label, resp_type) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(label) %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+
+check_data_by_pp <- check_data %>% 
+  group_by(label, resp_type, participant) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(label, participant) %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+
+plot_check_data_across_pp <- ggplot() +
+  geom_bar(data = check_data_across_pp, aes(x = label,
+                                  y = percentage,
+                                  fill = resp_type),
+           stat = "identity", alpha = 0.8, width = 0.2) +
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  )
+
+plot_check_data_across_pp
+
+
+plot_check_data_by_pp <- ggplot() +
+  geom_bar(data = check_data_by_pp, aes(x = label,
+                                            y = percentage,
+                                            fill = resp_type),
+           stat = "identity", alpha = 0.8, width = 0.2) +
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  
+  facet_wrap(~participant)
+
+plot_check_data_by_pp
+
+
+# non-uniformity
+data5 <- alldata_exp5 %>% 
+  filter(grepl("^setsize3", label))
+
+data_by_subject5.1 <- data5 %>% 
+  group_by(resp_type, label, participant) %>% 
+  
+  summarise(resp_variance = mean(resp_variance),
+            resp_variance_sd = sd(resp_variance),
+            n_reversal = mean(n_reversal),
+            n_reversal_sd = sd(n_reversal),
+            n = n()) %>% 
+  mutate(
+    resp_variance_SEM = resp_variance_sd / sqrt (n),
+    resp_variance_CI = resp_variance_SEM * qt((1-0.05)/2 +.5, n -1),
+    n_reversal_SEM = n_reversal_sd / sqrt (n),
+    n_reversal_CI = n_reversal_SEM * qt((1-0.05)/2 +.5, n -1)
+  )
+
+data_across_subject5.1 <- data5 %>% 
+  group_by(resp_type, label) %>% 
+  
+  summarise(resp_variance = mean(resp_variance),
+            resp_variance_sd = sd(resp_variance),
+            n_reversal = mean(n_reversal),
+            n_reversal_sd = sd(n_reversal),
+            n = n()) %>% 
+  mutate(
+    resp_variance_SEM = resp_variance_sd / sqrt (n),
+    resp_variance_CI = resp_variance_SEM * qt((1-0.05)/2 +.5, n -1)
+  )
+
+
+my_plot5 <- ggplot() +
+  geom_point(
+    data = data_across_subject5.1,
+    aes(
+      x = label,
+      y = n_reversal,
+      size = resp_type,
+      group = resp_type,
+      color = resp_type
+    ),
+    position = position_dodge(0.5),
+    stat = "identity",
+    alpha = 0.6
+  ) +
+  
+  geom_point(
+    data = data_by_subject5.1,
+    aes(
+      x = label,
+      y = n_reversal,
+      size = resp_type,
+      color = resp_type
+    ),
+    alpha = 0.05,
+    position = position_dodge(0.5)
+  ) + 
+  
+  labs(x = "Gabor type", y = "Number of reversal") +
+  
+  theme(axis.title.x = element_text(color="black", size=14, face="bold"),
+        axis.title.y = element_text(color="black", size=14, face="bold"),
+        
+        panel.border = element_blank(),  
+        # remove panel grid lines
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        # remove panel background
+        panel.background = element_blank(),
+        panel.spacing = unit(0.4, "cm"),
+        # add axis line
+        axis.line = element_line(colour = "grey"),
+        # x,y axis tick labels
+        axis.text.x = element_text(size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        # legend size
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10),
+        # facet wrap title
+        strip.text.x = element_text(size = 12, face = "bold"))
+  
+
+  
+my_plot5
+
+
+my_plot5.1 <- ggplot() +
+  geom_point(
+    data = data_across_subject5.1,
+    aes(
+      x = label,
+      y = resp_variance,
+      size = resp_type,
+      group = resp_type,
+      color = resp_type
+    ),
+    position = position_dodge(0.5),
+    stat = "identity",
+    alpha = 0.6
+  ) +
+  
+  geom_point(
+    data = data_by_subject5.1,
+    aes(
+      x = label,
+      y = resp_variance,
+      size = resp_type,
+      color = resp_type
+    ),
+    alpha = 0.05,
+    position = position_dodge(0.5)
+  ) + 
+  
+  labs(x = "Gabor type", y = "Response vairance") +
+  
+  theme(axis.title.x = element_text(color="black", size=14, face="bold"),
+        axis.title.y = element_text(color="black", size=14, face="bold"),
+        
+        panel.border = element_blank(),  
+        # remove panel grid lines
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        # remove panel background
+        panel.background = element_blank(),
+        panel.spacing = unit(0.4, "cm"),
+        # add axis line
+        axis.line = element_line(colour = "grey"),
+        # x,y axis tick labels
+        axis.text.x = element_text(size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        # legend size
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10),
+        # facet wrap title
+        strip.text.x = element_text(size = 12, face = "bold"))
+
+
+
+my_plot5.1
