@@ -10,7 +10,10 @@ setwd("d:/OneDrive/projects/multi_gabor_discr/data/")
 # read data
 exp <- "exp1"
 
-data <- read.csv(file.choose(), header = TRUE, sep = ",")
+# exp1 gbr_sc_threshold1.xlsx; exp2 gbr_sc_threshold2.xlsx
+
+data <- readxl::read_excel(path = file.choose())
+
 
 # check col names
 colnames(data)
@@ -27,39 +30,92 @@ mean(df_check_participants$age)
 # variables
 str(data)
 
-data$s_l <- as.factor(data$s_l)
-data$r_t <- as.factor(data$r_t)
-data$condition <- as.factor(data$condition)
+data$full_condition2 <- factor(
+  data$full_condition2,
+  levels = c(
+    "ladder_radial",
+    "snake_radial",
+    "ladder_tangential",
+    "snake_tangential",
+    "setsize1_h_s1",
+    "setsize1_v_s1"
+  )
+)
+
 data$participant <- as.factor(data$participant)
-data$setsize <- as.integer(data$trials.setsize)
+data$setsize <- as.factor(data$trials.setsize)
+
+# remove set size 1
+data_exc_ss1 <- data %>% 
+  filter(full_condition2 %in% c("ladder_radial", "snake_radial","ladder_tangential", "snake_tangential"))
+
+# drop unused factor levels
+data_exc_ss1$full_condition2 <- droplevels(data_exc_ss1$full_condition2)
+data_exc_ss1$setsize <- droplevels(data_exc_ss1$setsize)
+
+# set size 1
+data_ss1 <- data %>% 
+  filter(full_condition2 %in% c("setsize1_h_s1", "setsize1_v_s1"))
+
+data_ss1$full_condition2 <- droplevels(data_ss1$full_condition2)
+
+# test single vertical vs. single horizontal
+contrasts(data_ss1$full_condition2) <- matrix(c(-0.5, 0.5), ncol = 1)
+
+levels(data_ss1$full_condition2)
+
+model <- lme4::lmer(trials.intensity ~ full_condition2 + (1|participant), data = data_ss1) # selected model
+model2 <- lme4::lmer(trials.intensity ~  (1|participant), data = data_ss1)
+anova(model, model2)
+
+summary(model)
+
+sjPlot::tab_model(
+  model,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
 
 
-# LMM
- 
-model.full.interaction <- lmer(trials.intensity ~ condition * setsize + (1 + condition | participant),
-                               data = data)
+# test other set size 2, 3, 5, 7
 
-model.full <- lmer(trials.intensity ~ condition + setsize + (1 + condition | participant),
-                  data = data)
+# here set size as continous
+data_exc_ss1$setsize <- as.numeric(data_exc_ss1$setsize)
 
+# deviation coding: compares the mean of the dependent variable 
+# for a given level to the overall mean of the dependent variable.  
+#contrasts(data_exc_ss1$full_condition2) = contr.sum(4)
 
-model.reduced <- lmer(trials.intensity ~ setsize + (1 + condition | participant),
-                   data = data)
+# check mean
+tapply(data_exc_ss1$trials.intensity, data_exc_ss1$full_condition2, mean)
 
-summary(model.full)
-anova(model.full, model.reduced)
+model <- lme4::lmer(trials.intensity ~ setsize * full_condition2 + (1|participant), data = data_exc_ss1) # selected model
+model2 <- lme4::lmer(trials.intensity ~  setsize + full_condition2 + (1|participant), data = data_exc_ss1)
+
+table(data_exc_ss1$setsize)
+
+anova(model, model2)
+summary(model)
+
+sjPlot::tab_model(
+  model,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
 
 # pairwise comparisons
-emms <- emmeans(
-  model.full.interaction,
-  list(pairwise ~ condition),
+emms <- emmeans::emmeans(
+  model,
+  list(pairwise ~ setsize*full_condition2),
   adjust = "tukey"
 )
 
 summary(emms, infer = TRUE)
 
-# APA style table???? why so slow? 
-tab_model(model.full, p.val = "kr", show.df = TRUE, show.se = FALSE, show.stat = FALSE)
 
 
 # -------------exp3 ori task---------------------------------------------
