@@ -33,7 +33,7 @@ def check_ori(resp1, resp2, resp3):
         count_n += 1
 
     if resp2 < 0:
-        count_n +=1
+        count_n += 1
 
     if resp3 < 0:
         count_n += 1
@@ -49,7 +49,6 @@ def check_ori_setsize1(resp1):
         return "ccw"
     else:
         return "cw"
-
 
 
 def get_real_ori(ori, cw_ccw):
@@ -68,7 +67,6 @@ def get_resp_error(resp, orientation):
 
 
 def cal_reversal(cw_cww, resp_i, resp_m, resp_o):
-
     negative_count = count_negatives(resp_i, resp_m, resp_o)
     # If cw_cww is less than or equal to 0.5, the reversal is 3 minus the count of negatives
     # Otherwise, the reversal is equal to the count of negatives
@@ -76,7 +74,6 @@ def cal_reversal(cw_cww, resp_i, resp_m, resp_o):
 
 
 def get_resp_type(cw_cww, resp_i, resp_m, resp_o):
-
     negative_count = count_negatives(resp_i, resp_m, resp_o)
 
     if cw_cww <= 0.5:
@@ -113,6 +110,7 @@ def non_uniformity_cv(resp_i, resp_m, resp_o):
     mean = (resp_i + resp_m + resp_o) / 3
     if mean == 0:
         return float('inf')  # Avoid division by zero; handle this as per your use case
-    std_deviation = math.sqrt(((resp_i - mean) ** 2 + (resp_m - mean) ** 2 + (resp_o - mean) ** 2) / 3)
+    std_deviation = math.sqrt(
+        ((resp_i - mean) ** 2 + (resp_m - mean) ** 2 + (resp_o - mean) ** 2) / 3)
     cv = std_deviation / mean
     return cv

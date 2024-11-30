@@ -63,6 +63,17 @@ my_data <- my_data %>%
     )
   )
 
+my_data <- my_data %>%
+  mutate(
+    gabor_type2 = case_when(
+      str_ends(trials.label, "snake") ~ "snake",
+      str_ends(trials.label, "ladder") ~ "ladder",
+      str_ends(trials.label, "v") ~ "setsize1_v",
+      str_ends(trials.label, "h") ~ "setsize1_h",
+      TRUE ~ NA_character_  # This line is for any other unexpected cases
+    )
+  )
+
 
 # add gabor arrangment
 my_data <- my_data %>%
@@ -76,24 +87,37 @@ my_data <- my_data %>%
     )
   )
 
+my_data <- my_data %>%
+  mutate(
+    gabor_arrangment2 = case_when(
+      grepl("_r_", trials.label) ~ "radial",
+      grepl("_t_", trials.label) ~ "tangential",
+      str_ends(trials.label, "v") ~ "setsize1_v",
+      str_ends(trials.label, "h") ~ "setsize1_h",
+      TRUE ~ NA_character_  # This line is for any other unexpected cases
+    )
+  )
+
 # add full condition
-my_data$full_condition <- paste(my_data$gabor_type, my_data$gabor_arrangment, sep = "_")
+my_data$full_condition <- paste(my_data$gabor_type, my_data$gabor_arrangment2, sep = "_")
+my_data$full_condition2 <- paste(my_data$gabor_type2, my_data$gabor_arrangment, sep = "_")
+
 
 
 # drop rows that contains NA or empty
-my_data2 <- my_data[!is.na(my_data$trials.label), ]
-my_data2 <- my_data2[my_data2$trials.label != "", ]
+my_data <- my_data[!is.na(my_data$trials.label), ]
+my_data <- my_data[my_data$trials.label != "", ]
 
 # check NA and empty rows
-na_rows <- which(apply(my_data2, 1, function(row) any(is.na(row)))) #1 apply to rows; 2 columns
-empty_rows <- which(apply(my_data2, 1, function(row) any(row == "")))
+na_rows <- which(apply(my_data, 1, function(row) any(is.na(row)))) #1 apply to rows; 2 columns
+empty_rows <- which(apply(my_data, 1, function(row) any(row == "")))
 
 
 # get preprocessed data
 if (exp == "exp1") {
-  my_data3 <- subset(my_data2, participant >= 1 & participant <= 20)
+  my_data <- subset(my_data, participant >= 1 & participant <= 20)
 } else if (exp == "exp2") {
-  my_data3 <- subset(my_data2, participant > 20)
+  my_data <- subset(my_data, participant > 20)
   
 } else {
   cat("invalid experiment selection-choose 'exp1' or 'exp2'.")
@@ -102,24 +126,24 @@ if (exp == "exp1") {
 
 # write to .csv
 if (exp == "exp1"){
-  write.csv(my_data3, file = "gabor_exp1_alldata.csv", row.names = FALSE)
+  write.csv(my_data, file = "gabor_exp1_alldata.csv", row.names = FALSE)
 } else if (exp == "exp2"){
-  write.csv(my_data3, file = "gabor_exp2_alldata.csv", row.names = FALSE)
+  write.csv(my_data, file = "gabor_exp2_alldata.csv", row.names = FALSE)
 }
 
 # ---------------check raw data by participant--------------
 
 #  get participant n
-participants <- unique(my_data3$participant)
+participants <- unique(my_data$participant)
 
 # get labels
-labels <- unique(my_data3$trials.label)
+labels <- unique(my_data$trials.label)
 
 dfs_by_participant <- list()
 
 for (p in participants) {
   
-  my_data_p <- subset(my_data3, participant == p)
+  my_data_p <- subset(my_data, participant == p)
   
   # add trial number for each block, column reset for each unique value of "thisN" and "label"
   my_data_p <- my_data_p %>%

@@ -1,37 +1,16 @@
 # libraires ---------------------------------------------------------------
-if(!require(readxl)){
-  install.packages("readxl")
-  library(readxl)
-}
-
-if(!require(tidyverse)){
-  install.packages("tidyverse")
-  library(tidyverse)
-}
-
-if(!require(lme4)){
-  install.packages("lme4")
-  library(lme4)
-}
-
-
-if(!require(sjPlot)){
-  install.packages("sjPlot")
-  library(sjPlot)
-}
-
-
-if(!require(emmeans)){
-  install.packages("emmeans")
-  library(emmeans)
-}
-
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(svglite)
+library(ggpubr)
 # -------------exp1/exp2 --------------------------------------------------
+setwd("d:/OneDrive/projects/multi_gabor_discr/data/")
 
 # read data
-# exp1: prprcssed_mlti_gbr_sc_1.xlsx
-# exp2: prprcssed_mlti_gbr_sc_2.xlsx
-data <- read_excel(path = file.choose())
+exp <- "exp1"
+
+data <- read.csv(file.choose(), header = TRUE, sep = ",")
 
 # check col names
 colnames(data)
@@ -160,7 +139,9 @@ anova(model.glmer.full, model.glmer.reduced)
 emms <- emmeans(
   model.glmer.full,
   list(pairwise ~ s_l),
-  adjust = "tukey"
+  adjust = "tukey" 
 )
 
 summary(emms)
+
+

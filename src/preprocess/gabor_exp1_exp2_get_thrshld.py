@@ -2,7 +2,7 @@ import pandas as pd
 
 
 if __name__ == '__main__':
-    to_excel = False
+    to_excel = True
     exp = "exp1"
 
     PATH = "../../data/"

@@ -195,6 +195,16 @@ my_data3 <- my_data3 %>%
     )
   )
 
+my_data3 <- my_data3 %>%
+  mutate(
+    gabor_type2 = case_when(
+      str_ends(label, "snake") ~ "snake",
+      str_ends(label, "ladder") ~ "ladder",
+      str_ends(label, "v") ~ "setsize1_v",
+      str_ends(label, "h") ~ "setsize1_h",
+      TRUE ~ NA_character_  # This line is for any other unexpected cases
+    )
+  )
 # write to .csv
 if (exp == "exp3"){
   write.csv(my_data3, file = "gabor_2tasks_exp3_alldata.csv", row.names = FALSE)
