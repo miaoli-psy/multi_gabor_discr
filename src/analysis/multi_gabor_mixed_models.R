@@ -27,6 +27,7 @@ df_check_participants <- data %>%
 # mean age == 20.0 years
 mean(df_check_participants$age)
 
+
 # variables
 str(data)
 
@@ -42,7 +43,11 @@ data$full_condition2 <- factor(
   )
 )
 
+
+
 data$participant <- as.factor(data$participant)
+
+# for now, later as continious
 data$setsize <- as.factor(data$trials.setsize)
 
 # remove set size 1
@@ -65,7 +70,7 @@ contrasts(data_ss1$full_condition2) <- matrix(c(-0.5, 0.5), ncol = 1)
 levels(data_ss1$full_condition2)
 
 model <- lme4::lmer(trials.intensity ~ full_condition2 + (1|participant), data = data_ss1) # selected model
-model2 <- lme4::lmer(trials.intensity ~  (1|participant), data = data_ss1)
+model2 <- lme4::lmer(trials.intensity ~ (1|participant), data = data_ss1)
 anova(model, model2)
 
 summary(model)
@@ -84,9 +89,11 @@ sjPlot::tab_model(
 # here set size as continous
 data_exc_ss1$setsize <- as.numeric(data_exc_ss1$setsize)
 
-# deviation coding: compares the mean of the dependent variable 
-# for a given level to the overall mean of the dependent variable.  
-#contrasts(data_exc_ss1$full_condition2) = contr.sum(4)
+# Dummy
+contrasts(data_exc_ss1$full_condition2) = contr.treatment(4)
+
+# Deviation coding
+# contrasts(data_exc_ss1$full_condition2) = contr.sum(4)
 
 # check mean
 tapply(data_exc_ss1$trials.intensity, data_exc_ss1$full_condition2, mean)
@@ -96,8 +103,60 @@ model2 <- lme4::lmer(trials.intensity ~  setsize + full_condition2 + (1|particip
 
 table(data_exc_ss1$setsize)
 
+levels(data_exc_ss1$full_condition2)
+
 anova(model, model2)
 summary(model)
+
+#variance-covariance matrix for fixed effects (needed for SEs of combined slopes)
+vcov_matrix <- vcov(model)
+
+# get slopes, test against 0
+
+fixed_effects <- lme4::fixef(model)
+
+slope_RL <- fixed_effects["setsize"]
+se_RL <- sqrt(vcov_matrix["setsize", "setsize"])
+t_RL <- slope_RL / se_RL
+p_RL <- 2 * (1 - pnorm(abs(t_RL)))
+
+
+
+slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition22"]
+
+se_RS <- sqrt(vcov_matrix["setsize", "setsize"] + 
+                vcov_matrix["setsize:full_condition22",
+                            "setsize:full_condition22"] +
+                2 * vcov_matrix["setsize", "setsize:full_condition22"])
+t_RS <- slope_RS / se_RS
+p_RS <- 2 * (1 - pnorm(abs(t_RS)))
+
+
+slope_TL <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition23"]
+
+se_TL <- sqrt(vcov_matrix["setsize", "setsize"] + 
+                vcov_matrix["setsize:full_condition23",
+                            "setsize:full_condition23"] +
+                2 * vcov_matrix["setsize", "setsize:full_condition23"])
+t_TL <- slope_TL / se_TL
+p_TL <- 2 * (1 - pnorm(abs(t_TL)))
+
+
+slope_TS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition24"]
+slope_TS
+
+se_TS <- sqrt(vcov_matrix["setsize", "setsize"] + 
+                vcov_matrix["setsize:full_condition23",
+                            "setsize:full_condition23"] +
+                2 * vcov_matrix["setsize", "setsize:full_condition23"])
+t_TS <- slope_TS / se_TS
+p_TS <- 2 * (1 - pnorm(abs(t_TS)))
+
+# adjust p
+
+p_vals <- c(p_RS, p_RL, p_TS, p_TL)
+p_values_corrected <- p.adjust(p_vals, method = "holm")
+
 
 sjPlot::tab_model(
   model,
@@ -107,16 +166,18 @@ sjPlot::tab_model(
   digits = 3
 ) 
 
+# another ref level
+data_exc_ss1$full_condition2 <- relevel(data_exc_ss1$full_condition2, ref = "ladder_tangential")
+
+
 # pairwise comparisons
 emms <- emmeans::emmeans(
   model,
-  list(pairwise ~ setsize*full_condition2),
+  list(pairwise ~ full_condition2),
   adjust = "tukey"
 )
 
 summary(emms, infer = TRUE)
-
-
 
 # -------------exp3 ori task---------------------------------------------
 
