@@ -124,7 +124,7 @@ p_RL <- 2 * (1 - pnorm(abs(t_RL)))
 
 slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition22"]
 
-se_RS <- sqrt(vcov_matrix["setsize", "setsize"] + 
+se_RS <- sqrt(vcov_matrix["setsize", "setsize"] +
                 vcov_matrix["setsize:full_condition22",
                             "setsize:full_condition22"] +
                 2 * vcov_matrix["setsize", "setsize:full_condition22"])
@@ -134,7 +134,7 @@ p_RS <- 2 * (1 - pnorm(abs(t_RS)))
 
 slope_TL <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition23"]
 
-se_TL <- sqrt(vcov_matrix["setsize", "setsize"] + 
+se_TL <- sqrt(vcov_matrix["setsize", "setsize"] +
                 vcov_matrix["setsize:full_condition23",
                             "setsize:full_condition23"] +
                 2 * vcov_matrix["setsize", "setsize:full_condition23"])
@@ -145,7 +145,7 @@ p_TL <- 2 * (1 - pnorm(abs(t_TL)))
 slope_TS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition24"]
 slope_TS
 
-se_TS <- sqrt(vcov_matrix["setsize", "setsize"] + 
+se_TS <- sqrt(vcov_matrix["setsize", "setsize"] +
                 vcov_matrix["setsize:full_condition23",
                             "setsize:full_condition23"] +
                 2 * vcov_matrix["setsize", "setsize:full_condition23"])
@@ -156,6 +156,19 @@ p_TS <- 2 * (1 - pnorm(abs(t_TS)))
 
 p_vals <- c(p_RS, p_RL, p_TS, p_TL)
 p_values_corrected <- p.adjust(p_vals, method = "holm")
+
+# results into a dataframe
+results_df <- data.frame(
+  Condition = c("RL", "RS", "TL", "TS"),
+  Slope = c(slope_RL, slope_RS, slope_TL, slope_TS),
+  SE = c(se_RL, se_RS, se_TL, se_TS),
+  t_value = c(t_RL, t_RS, t_TL, t_TS),
+  p_value = c(p_RL, p_RS, p_TL, p_TS)
+)
+
+# corrected p
+results_df$p_value_corrected <- p.adjust(results_df$p_value, method = "holm")
+results_df
 
 
 sjPlot::tab_model(
