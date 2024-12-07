@@ -7,13 +7,11 @@ library(ggpubr)
 # -------------exp1/exp2 --------------------------------------------------
 setwd("d:/OneDrive/projects/multi_gabor_discr/data/")
 
+# ----------------Exp 1----------------------------
 # read data
-exp <- "exp1"
-
 # exp1 gbr_sc_threshold1.xlsx; exp2 gbr_sc_threshold2.xlsx
 
 data <- readxl::read_excel(path = file.choose())
-
 
 # check col names
 colnames(data)
@@ -192,86 +190,268 @@ emms <- emmeans::emmeans(
 
 summary(emms, infer = TRUE)
 
-# -------------exp3 ori task---------------------------------------------
 
-# read data
-# exp3: prprcssed_mlti_gbr_sc_3.xlsx
-data3 <- read_excel(path = file.choose())
+# ---------------EXP 3-------------------------
+
+# exp3 threshold
+# read data: gbr_sc_threshold3.xlsx
+
+data_exp3_threshold <- readxl::read_excel(path = file.choose())
 
 # check col names
-colnames(data3)
+colnames(data_exp3_threshold)
 
 # check participants info
 # 15 females; 5 males; age range 18-25
-df_check_participants3 <- data3 %>% 
+df_check_participants <- data_exp3_threshold %>% 
   group_by(participant, age, sex) %>% 
   tally()
 
 # mean age == 20.0 years
-mean(df_check_participants3$age)
+mean(df_check_participants$age)
+
 
 # variables
-str(data3)
+str(data_exp3_threshold)
 
-data3$s_l <- as.factor(data3$s_l)
-data3$participant <- as.factor(data3$participant)
-data3$setsize <- as.integer(data3$setsize)
+table(data_exp3_threshold$setsize, data_exp3_threshold$gabor_type)
 
+data_exp3_threshold$setsize <- as.numeric(data_exp3_threshold$setsize)
 
-# LMM
-model.full3 <- lmer(intensity ~ s_l + setsize + (1 + s_l | participant),
-                   data = data3)
+data_exp3_threshold$gabor_type <-as.factor(data_exp3_threshold$gabor_type)
 
+# contrast coding
+# contrasts(data_exp3_threshold$gabor_type) <- matrix(c(-0.5, 0.5), ncol = 1)
 
-model.reduced3 <- lmer(intensity ~ setsize + (1 + s_l | participant),
-                      data = data3)
+levels(data_exp3_threshold$gabor_type)
 
-summary(model.full3)
-anova(model.full3, model.reduced3)
+# check mean
+tapply(data_exp3_threshold$intensity, data_exp3_threshold$gabor_type, mean)
 
-# pairwise comparisons
-emms3 <- emmeans(
-  model.full3,
-  list(pairwise ~ s_l),
+model <- lme4::lmer(intensity ~ setsize * gabor_type + (1|participant), data = data_exp3_threshold) # selected model
+model2 <- lme4::lmer(intensity ~  setsize + gabor_type + (1|participant), data = data_exp3_threshold)
+
+table(data_exp3_threshold$setsize)
+
+anova(model, model2)
+
+summary(model)
+
+sjPlot::tab_model(
+  model,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
+
+emms3 <- emmeans::emmeans(
+  model,
+  list(pairwise ~ gabor_type),
   adjust = "tukey"
 )
 
 summary(emms3, infer = TRUE)
 
 
-# -----------------exp3 same or not task---------------------------------------
 
-# get data
-data3_excl1 <- data3[data3$ans_same%in% c("w", 'x'),]
+# get slopes, test against 0
+vcov_matrix <- vcov(model)
+fixed_effects <- lme4::fixef(model)
 
-# categorized answer
-data3_excl1 <- data3_excl1 %>% 
-  mutate(ans = case_when(
-    ans_same == "w" ~ 1,
-    ans_same == "x" ~ 0)
-         )
+slope_RL <- fixed_effects["setsize"]
+se_RL <- sqrt(vcov_matrix["setsize", "setsize"])
+t_RL <- slope_RL / se_RL
+p_RL <- 2 * (1 - pnorm(abs(t_RL)))
 
-colnames(data3_excl1)
 
-data3_excl1$s_l <- as.factor(data3_excl1$s_l)
-data3_excl1$participant <- as.factor(data3_excl1$participant)
-data3_excl1$setsize <- as.integer(data3_excl1$setsize)
 
-# model.glmer.interaction <-glmer(ans ~ setsize * s_l + setsize + s_l + (1 + s_l | participant), data = data3_excl1, family = binomial)
-model.glmer.full <-glmer(ans ~ setsize + s_l + (1 + s_l | participant), data = data3_excl1, family = binomial)
-model.glmer.reduced <-glmer(ans ~ setsize  + (1 + s_l | participant), data = data3_excl1, family = binomial)
+slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:gabor_typesnake"]
 
-summary(model.glmer.full)
-anova(model.glmer.full, model.glmer.reduced)
-# anova(model.glmer.interaction, model.glmer.full)
+se_RS <- sqrt(vcov_matrix["setsize", "setsize"] +
+                vcov_matrix["setsize:gabor_typesnake",
+                            "setsize:gabor_typesnake"] +
+                2 * vcov_matrix["setsize", "setsize:gabor_typesnake"])
+t_RS <- slope_RS / se_RS
+p_RS <- 2 * (1 - pnorm(abs(t_RS)))
 
-# pairwise com
-emms <- emmeans(
-  model.glmer.full,
-  list(pairwise ~ s_l),
-  adjust = "tukey" 
+
+# adjust p
+
+p_vals <- c(p_RS, p_RL)
+p_values_corrected <- p.adjust(p_vals, method = "holm")
+
+
+# ---------------EXP 3-------------------------
+
+# exp3 Uniformity Judgment 
+
+# read data
+# gabor_2tasks_exp3_alldata.csv
+data_exp3_uniformity <- read.csv(file.choose())
+
+# check col names
+colnames(data_exp3_uniformity)
+
+# factor
+data_exp3_uniformity$gabor_type2 <-as.factor(data_exp3_uniformity$gabor_type2)
+levels(data_exp3_uniformity$gabor_type2)
+
+# remove setsize 1 
+data_exp3_uniformity <- data_exp3_uniformity %>% 
+  filter(gabor_type2 %in% c("snake", "ladder"))
+
+# drop unused factor levels
+data_exp3_uniformity$gabor_type2 <- droplevels(data_exp3_uniformity$gabor_type2)
+
+
+# add correct
+data_exp3_uniformity$correct <- NA
+
+# compare intensity in row N and row N+1
+for (i in 1:(nrow(data_exp3_uniformity) - 1)) {
+  if (data_exp3_uniformity$intensity[i + 1] >= data_exp3_uniformity$intensity[i]) {
+    data_exp3_uniformity$correct[i] <- 0
+  } else if (data_exp3_uniformity$intensity[i + 1] < data_exp3_uniformity$intensity[i]) {
+    data_exp3_uniformity$correct[i] <- 1
+  }
+}
+
+# indices of all "start"
+start_indices <- which(data_exp3_uniformity$direction == "start")
+
+# row start-1
+rows_to_remove <- start_indices[start_indices != start_indices[1]] - 1
+
+# remove
+data_exp3_uniformity <- data_exp3_uniformity[-rows_to_remove, ]
+
+# remove last row
+data_exp3_uniformity <- data_exp3_uniformity[-length(data_exp3_uniformity$intensity), ] 
+
+# clean up the col ans_same
+data_exp3_uniformity <- data_exp3_uniformity %>% 
+  filter(ans_same %in% c("w", "x"))
+
+
+# GLMM
+data_exp3_uniformity <- data_exp3_uniformity %>%
+  mutate(resp_binary = ifelse(ans_same == "w", 1, 
+                              ifelse(ans_same == "x", 0, NA)))
+
+# factors amd continues
+data_exp3_uniformity$setsize <- as.numeric(data_exp3_uniformity$setsize)
+data_exp3_uniformity$correct <- as.factor(data_exp3_uniformity$correct)
+# data_exp3_uniformity$setsize <- as.factor(data_exp3_uniformity$setsize)
+
+
+levels(data_exp3_uniformity$correct)
+# reverse coding
+data_exp3_uniformity$resp_no <- ifelse(data_exp3_uniformity$resp_binary == 0, 1, 0)
+
+
+model_glmm <- lme4::glmer(resp_no ~ setsize * gabor_type2 * correct + (1 | participant),
+                          data = data_exp3_uniformity, family = binomial)
+model_glmm2 <- lme4::glmer(resp_no ~ setsize * gabor_type2 + (1 | participant),
+                          data = data_exp3_uniformity, family = binomial)
+anova(model_glmm, model_glmm2)
+
+summary(model_glmm)
+
+sjPlot::tab_model(
+  model_glmm,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
+
+r2 <- MuMIn::r.squaredGLMM(model_glmm)
+r2
+
+data_exp3_uniformity$predicted <- predict(model_glmm, type = "response")
+
+
+ggplot(data_exp3_uniformity, aes(x = setsize, y = predicted, color = gabor_type2)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Predicted Probabilities of Judging Items as Different",
+       x = "Set Size", y = "Predicted Probability")+
+  facet_wrap(~correct)
+
+
+# slopes
+
+fixed_effects <- lme4::fixef(model_glmm)
+
+beta_setsize <- fixed_effects["setsize"]
+beta_setsize_gabor_snake <- fixed_effects["setsize:gabor_type2snake"]
+beta_setsize_correct <- fixed_effects["setsize:correct1"]
+beta_setsize_gabor_correct <- fixed_effects["setsize:gabor_type2snake:correct1"]
+
+
+slope_ladder_correct0 <- beta_setsize
+slope_ladder_correct1 <- beta_setsize + beta_setsize_correct
+slope_snake_correct0 <- beta_setsize + beta_setsize_gabor_snake
+slope_snake_correct1 <- beta_setsize + beta_setsize_gabor_snake + beta_setsize_correct + beta_setsize_gabor_correct
+
+
+# stats test
+
+vcov_matrix <- vcov(model_glmm)
+
+# se
+se_ladder_correct0 <- sqrt(vcov_matrix["setsize", "setsize"])
+se_ladder_correct1 <- sqrt(vcov_matrix["setsize", "setsize"] +
+                      vcov_matrix["setsize:correct1", "setsize:correct1"] +
+                      2 * vcov_matrix["setsize", "setsize:correct1"])
+
+se_snake_correct0 <- sqrt(vcov_matrix["setsize", "setsize"] +
+                     vcov_matrix["setsize:gabor_type2snake", "setsize:gabor_type2snake"] +
+                     2 * vcov_matrix["setsize", "setsize:gabor_type2snake"])
+
+se_snake_correct1 <- sqrt(vcov_matrix["setsize", "setsize"] +
+                     vcov_matrix["setsize:gabor_type2snake", "setsize:gabor_type2snake"] +
+                     vcov_matrix["setsize:correct1", "setsize:correct1"] +
+                     vcov_matrix["setsize:gabor_type2snake:correct1", "setsize:gabor_type2snake:correct1"] +
+                     2 * vcov_matrix["setsize", "setsize:gabor_type2snake"] +
+                     2 * vcov_matrix["setsize", "setsize:correct1"] +
+                     2 * vcov_matrix["setsize:gabor_type2snake", "setsize:correct1"] +
+                     2 * vcov_matrix["setsize", "setsize:gabor_type2snake:correct1"])
+
+# ts
+t_ladder_c0 <- slope_ladder_correct0 / se_ladder_correct0
+t_ladder_c1 <- slope_ladder_correct1 / se_ladder_correct1
+t_snake_c0 <- slope_snake_correct0 / se_snake_correct0
+t_snake_c1 <- slope_snake_correct1 / se_snake_correct1
+
+# ps
+p_ladder_c0 <- 2 * (1 - pnorm(abs(t_ladder_c0)))
+p_ladder_c1 <- 2 * (1 - pnorm(abs(t_ladder_c1)))
+p_snake_c0 <- 2 * (1 - pnorm(abs(t_snake_c0)))
+p_snake_c1 <- 2 * (1 - pnorm(abs(t_snake_c1)))
+
+
+p_vals <- c(p_ladder_c0, p_ladder_c1,p_snake_c0, p_snake_c1)
+p_values_corrected <- p.adjust(p_vals, method = "holm")
+
+# results to df
+results <- data.frame(
+  Condition = c("ladder_0", "ladder_1", "snake_0", "snake_1"),
+  Slope = c(slope_ladder_correct0, slope_ladder_correct1, slope_snake_correct0, slope_snake_correct1),
+  SE = c(se_ladder_correct0, se_ladder_correct1, se_snake_correct0, se_snake_correct1),
+  t_value = c(t_ladder_c0, t_ladder_c1, t_snake_c0, t_snake_c1),
+  p_value = c(p_ladder_c0, p_ladder_c1, p_snake_c0, p_snake_c1),
+  adj_p = p_values_corrected
+)
+results
+
+
+# pairwise comparisons
+emms <- emmeans::emmeans(
+  model_glmm,
+  list(pairwise ~ gabor_type2 | correct),
+  adjust = "tukey"
 )
 
 summary(emms)
-
-
