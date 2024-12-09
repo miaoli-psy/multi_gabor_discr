@@ -455,3 +455,164 @@ emms <- emmeans::emmeans(
 )
 
 summary(emms)
+
+# ---------------EXP 4 adjust orientation-------------------------
+
+# read data
+# gabor_adjst_ori_alldata.csv
+data_exp4<- read.csv(file.choose())
+
+colnames(data_exp4)
+
+# check participants info
+df_check_participants <- data_exp4 %>% 
+  group_by(participant, age, sex) %>% 
+  tally()
+
+# mean age == 20.0 years
+mean(df_check_participants$age)
+
+selected_data <- data_exp4 %>%
+  dplyr::select(label, ori, abs_ori, participant, inner_resp, midd_resp, outer_resp)
+
+# long format
+data_exp4_long_format <-
+  reshape2::melt(
+    selected_data,
+    id.vars = c("label", "abs_ori", "ori", "participant"),
+    variable.name = "gabor_location"
+  )
+
+data_exp4_long_format <- data_exp4_long_format %>% 
+  dplyr::rename(resp_ori = value)
+
+# cal the shortest angular distance between two angles
+angle_dist <- function(a, b) {
+  # diff between angles a and b
+  c <- a - b
+  
+  # normalize the diffcto be within the range of -90 to 90 degrees
+  # (c + 90) % 180 shifts the range of c to [0, 180) by adding 90, 
+  # then taking modulo 180 subtracting 90 shifts the range back to [-90, 90)
+  normalized_angle <- (c + 90) %% 180 - 90
+  
+  return (normalized_angle)
+}
+
+# mirroring resp if ori is negative
+
+data_exp4_long_format <- data_exp4_long_format %>% 
+  mutate(resp_ori_mirror = if_else(ori < 0, resp_ori * -1, resp_ori)) %>% 
+  # adjustment error
+  mutate(adj_error = resp_ori_mirror - abs_ori) %>% 
+  mutate(adj_error_shortest_dis = angle_dist(resp_ori_mirror, abs_ori))
+
+
+# add adjustment error type
+
+data_exp4_long_format <- data_exp4_long_format %>% 
+  mutate(error_types = case_when(
+    adj_error_shortest_dis > 0 & adj_error_shortest_dis <= 90 ~ "repulsion",
+    adj_error_shortest_dis >= -10 & adj_error_shortest_dis < 0 ~ "compression",
+    adj_error_shortest_dis >= -90 & adj_error_shortest_dis < -10 ~ "inversion",
+    adj_error_shortest_dis == 0 ~ "correct"))
+
+
+# set size 3 and set size 1
+
+data_exp4_long_format$label <- as.factor(data_exp4_long_format$label)
+
+data_exp4_long_format_ss3 <- data_exp4_long_format %>% 
+  filter(label %in% c("setsize3_r_ladder", "setsize3_r_snake"))
+
+data_exp4_long_format_ss1 <- data_exp4_long_format %>% 
+  filter(label %in% c("setsize1_h", "setsize1_v"))
+
+data_exp4_long_format_ss3$label <- droplevels(data_exp4_long_format_ss3$label )
+data_exp4_long_format_ss1$label <- droplevels(data_exp4_long_format_ss1$label )
+
+# factors
+data_exp4_long_format_ss3$error_types <- factor(data_exp4_long_format_ss3$error_types, levels = c(
+  "correct", "repulsion", "compression", "inversion"))
+
+error_type_percentages <- data_exp4_long_format_ss3 %>%
+  group_by(abs_ori, gabor_location, error_types, label) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(abs_ori, gabor_location, label) %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Plot the data
+plot <- ggplot() +
+  geom_bar(data = error_type_percentages,
+           aes(x = gabor_location, 
+               y = percentage, 
+               fill = error_types),
+    stat = "identity", position = "stack", color = "black", alpha = 0.5) +
+  
+  geom_text(data = error_type_percentages,
+            aes(x = gabor_location, 
+                y = percentage, # Position text in the middle of the bar
+                label = sprintf("%.2f%%", percentage),
+                group = error_types),
+            position = position_stack(vjust = 0.5), # Adjust position for stacking
+            color = "black", size = 3) +
+  
+  labs(
+    title = "",
+    x = "Orientation",
+    y = "Percentage",
+    fill = "Error Types"
+  ) +
+  scale_x_discrete(labels = c("inner_resp" = "Inner", 
+                              "midd_resp" = "Middle",
+                              "outer_resp" = "Outer")) + 
+  scale_fill_manual(
+    labels = c("correct", "repulsion", "compression", "inversion"),
+    values = c("white", "#4467C4", "#808A87", "#EC8F4C"),
+    name = "Gabor type"
+  ) +
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  facet_wrap(~ label + abs_ori,
+             labeller = labeller(
+               abs_ori =
+                 c("2" = "2°",
+                   "4" = "4°",
+                   "10" = "10°"),
+                label = 
+                 c(
+                   "setsize3_r_ladder" = "Radial Ladder",
+                   "setsize3_r_snake" = "Radial Snake"
+                 )
+             ))
+
+plot
+
+
