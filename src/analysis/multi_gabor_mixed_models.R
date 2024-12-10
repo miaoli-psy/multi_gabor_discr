@@ -475,6 +475,9 @@ mean(df_check_participants$age)
 selected_data <- data_exp4 %>%
   dplyr::select(label, ori, abs_ori, participant, inner_resp, midd_resp, outer_resp)
 
+# for single gabor, middle and outer location fill out
+selected_data[is.na(selected_data)] <- 9999
+
 # long format
 data_exp4_long_format <-
   reshape2::melt(
@@ -485,6 +488,18 @@ data_exp4_long_format <-
 
 data_exp4_long_format <- data_exp4_long_format %>% 
   dplyr::rename(resp_ori = value)
+
+data_exp4_long_format <- subset(data_exp4_long_format, resp_ori != 9999)
+
+data_exp4_long_format <- data_exp4_long_format %>%
+  mutate(
+    gabor_location = case_when(
+      label == "setsize1_v" & gabor_location == "inner_resp" ~ "SingelVertical",
+      label == "setsize1_h" & gabor_location == "inner_resp" ~ "SingerHorizontal",
+      gabor_location == "inner_resp" ~ "inner_resp",
+      gabor_location == "midd_resp" ~ "midd_resp",
+      gabor_location == "outer_resp" ~ "outer_resp"))
+
 
 # cal the shortest angular distance between two angles
 angle_dist <- function(a, b) {
@@ -509,14 +524,21 @@ data_exp4_long_format <- data_exp4_long_format %>%
 
 
 # add adjustment error type
-
 data_exp4_long_format <- data_exp4_long_format %>% 
-  mutate(error_types = case_when(
-    adj_error_shortest_dis > 0 & adj_error_shortest_dis <= 90 ~ "repulsion",
-    adj_error_shortest_dis >= -10 & adj_error_shortest_dis < 0 ~ "compression",
-    adj_error_shortest_dis >= -90 & adj_error_shortest_dis < -10 ~ "inversion",
-    adj_error_shortest_dis == 0 ~ "correct"))
-
+  mutate(
+    compression_limit = case_when(
+      abs_ori == 10 ~ -10,
+      abs_ori == 4 ~ -4,
+      abs_ori == 2 ~ -2,
+      TRUE ~ -10 # Default for any unhandled `abs_ori` value
+    ),
+    error_types = case_when(
+      adj_error_shortest_dis > 0 & adj_error_shortest_dis <= 90 ~ "repulsion",
+      adj_error_shortest_dis >= compression_limit & adj_error_shortest_dis < 0 ~ "compression",
+      adj_error_shortest_dis >= -90 & adj_error_shortest_dis < compression_limit ~ "inversion",
+      adj_error_shortest_dis == 0 ~ "correct"
+    )
+  )
 
 # set size 3 and set size 1
 
@@ -531,46 +553,131 @@ data_exp4_long_format_ss1 <- data_exp4_long_format %>%
 data_exp4_long_format_ss3$label <- droplevels(data_exp4_long_format_ss3$label )
 data_exp4_long_format_ss1$label <- droplevels(data_exp4_long_format_ss1$label )
 
-# factors
-data_exp4_long_format_ss3$error_types <- factor(data_exp4_long_format_ss3$error_types, levels = c(
-  "correct", "repulsion", "compression", "inversion"))
 
-error_type_percentages <- data_exp4_long_format_ss3 %>%
+# data to plot
+data_exp4_data_plot <- rbind(data_exp4_long_format_ss3, data_exp4_long_format_ss1)
+
+# some processing
+
+data_exp4_data_plot <- data_exp4_data_plot %>% 
+  mutate(label = case_when(
+    label == "setsize3_r_ladder" | label== "setsize1_h" ~ "ladder",
+    label == "setsize3_r_snake" | label== "setsize1_v" ~ "snake"
+  ) )
+
+# factors
+data_exp4_data_plot$error_types <- factor(data_exp4_data_plot$error_types, levels = c(
+ "repulsion",  "correct", "compression", "inversion"))
+
+# error type for each condition
+error_type_percentages <- data_exp4_data_plot %>%
   group_by(abs_ori, gabor_location, error_types, label) %>%
   summarise(count = n(), .groups = "drop") %>%
   group_by(abs_ori, gabor_location, label) %>%
   mutate(percentage = (count / sum(count)) * 100)
 
-# Plot the data
+# average adj error
+ave_adj_error_by_participant <- data_exp4_data_plot %>% 
+  group_by(abs_ori, gabor_location, label, participant) %>%
+  dplyr::summarise(
+    adj_error = mean(adj_error_shortest_dis),
+    adj_error_sd = sd(adj_error_shortest_dis),
+    # # compare mean with the package calculation, do not differ much
+    # adj_error_circularmean = circular::mean.circular(circular::circular(adj_error_shortest_dis / 180 * pi)) / pi * 180,
+    # adj_error_sd_circular = circular::sd.circular(circular::circular(adj_error_shortest_dis / 180 * pi)) / pi * 180,
+    n = n()
+  ) %>% 
+  mutate(
+    adj_error_sem = adj_error_sd/sqrt(n),
+    adj_error_ci = adj_error_sem * qt((1 - 0.05) / 2 + .5, n -1)
+  )
+
+ave_adj_error <- ave_adj_error_by_participant %>% 
+  group_by(abs_ori, gabor_location, label) %>%
+  dplyr::summarise(
+    adj_error_mean = mean(adj_error),
+    adj_error_mean_sd = sd(adj_error),
+    group_var = mean(adj_error_sd),
+    group_var_sd = sd(adj_error_sd),
+    n = n()
+  ) %>% 
+  mutate(
+    adj_error_sem = adj_error_mean_sd/sqrt(n),
+    adj_error_ci = adj_error_sem * qt((1 - 0.05) / 2 + .5, n - 1),
+    group_var_sem = group_var_sd/sqrt(n),
+    group_var_ci = group_var_sem * qt((1 - 0.05) / 2 + .5, n - 1)
+  )
+
+# error type distribution
+# scaling_factor <- 100 / 10 # if secondary y-axis is added
+
 plot <- ggplot() +
+  
   geom_bar(data = error_type_percentages,
            aes(x = gabor_location, 
                y = percentage, 
                fill = error_types),
-    stat = "identity", position = "stack", color = "black", alpha = 0.5) +
+    stat = "identity", position = "stack", color = "grey", alpha = 0.5) +
   
   geom_text(data = error_type_percentages,
             aes(x = gabor_location, 
                 y = percentage, # Position text in the middle of the bar
-                label = sprintf("%.2f%%", percentage),
-                group = error_types),
+                label = sprintf("%.2f", percentage),
+                group = error_types,
+                alpha = 0.5),
             position = position_stack(vjust = 0.5), # Adjust position for stacking
             color = "black", size = 3) +
   
+  # geom_point(data = ave_adj_error,
+  #            aes(x = gabor_location, 
+  #                y = (adj_error_mean + 5) * scaling_factor),
+  #            shape = 21,
+  #            color = "black", size = 3.5) + # Use points for averages
+  # 
+  # geom_errorbar(data = ave_adj_error,
+  #               aes(x = gabor_location, 
+  #                   ymin = (adj_error_mean - adj_error_ci + 5) * scaling_factor, 
+  #                   ymax = (adj_error_mean + adj_error_ci + 5) * scaling_factor),
+  #               width = 0, color = "black",
+  #               linewidth = 0.8) + # Add error bars for averages
+  
+  # geom_text(data = ave_adj_error,
+  #           aes(x = gabor_location, 
+  #               y = (adj_error_mean + 5) * scaling_factor, 
+  #               label = sprintf("%.2f", adj_error_mean)),
+  #           color = "red", vjust = -0.5, size = 3) + # Add labels for averages
+  
+  # Scales and secondary axis
+  # scale_y_continuous(
+  #   name = "Percentage (0-100%)",
+  #   limits = c(-1, 101), # Fix primary y-axis range to 0-100
+  #   sec.axis = sec_axis(
+  #     trans = ~ . / scaling_factor - 5, # Map back to -5 to 5
+  #     name = "Adjustment Error (-5° to 5°)" # Label for the secondary axis
+  #   )
+  # ) +
+  
+  scale_y_continuous(
+    name = "Percentage (0-100%)",
+    limits = c(-1, 101)
+  ) +
   labs(
     title = "",
-    x = "Orientation",
+    x = "Location",
     y = "Percentage",
     fill = "Error Types"
   ) +
   scale_x_discrete(labels = c("inner_resp" = "Inner", 
                               "midd_resp" = "Middle",
-                              "outer_resp" = "Outer")) + 
+                              "outer_resp" = "Outer",
+                              "SingelVertical" = "SV",
+                              "SingerHorizontal" = "SH")) + 
   scale_fill_manual(
-    labels = c("correct", "repulsion", "compression", "inversion"),
-    values = c("white", "#4467C4", "#808A87", "#EC8F4C"),
-    name = "Gabor type"
+    labels = c( "repulsion", "correct", "compression", "inversion"),
+    values = c( "#4467C4","white", "#808A87", "#EC8F4C"),
+    name = "Error type"
   ) +
+  
   theme(
     axis.title.x = element_text(
       color = "black",
@@ -608,11 +715,239 @@ plot <- ggplot() +
                    "10" = "10°"),
                 label = 
                  c(
-                   "setsize3_r_ladder" = "Radial Ladder",
-                   "setsize3_r_snake" = "Radial Snake"
+                   "ladder" = "Radial Ladder",
+                   "snake" = "Radial Snake"
                  )
              ))
 
 plot
+
+
+plot_mean_adj_error <- ggplot() +
+  geom_point(
+    data = ave_adj_error,
+    aes(
+      x = gabor_location,
+      y = adj_error_mean,
+      group = label,
+      color = label,
+      size = 0.4
+    ),
+    position = position_dodge(0.8),
+    stat = "identity",
+    alpha = 0.8,
+    show.legend = FALSE) +
+  
+  geom_errorbar(
+    data = ave_adj_error,
+    aes(
+      x = gabor_location,
+      y = adj_error_mean,
+      ymin = adj_error_mean - adj_error_ci,
+      ymax = adj_error_mean + adj_error_ci,
+      group = label,
+      color = label
+    ),
+    
+    size  = 0.8,
+    width = .00,
+    alpha = 0.5,
+    position = position_dodge(0.8)
+  ) +
+  
+  
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  
+  labs(y = "Adjustment Arror(°)", x = "Gabor Location") +
+  
+  # scale_y_continuous(limits = c(-4, 4)) +
+  # 
+  scale_x_discrete(labels = c("inner_resp" = "Inner", 
+                              "midd_resp" = "Middle",
+                              "outer_resp" = "Outer",
+                              "SingelVertical" = "SV",
+                              "SingerHorizontal" = "SH")) + 
+  
+  scale_color_manual(
+    labels = c("Radial Ladder",  "Radial Sanke"),
+    values = c("#BB5566", "#674EA7"),
+    name = "Gabor type"
+  ) +
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  facet_wrap(~ abs_ori, nrow = 1, labeller = labeller(
+    abs_ori =
+      c("2" = "2°",
+        "4" = "4°",
+        "10" = "10°"
+      )
+  ))
+
+plot_mean_adj_error
+
+plot_group_variability <- ggplot() +
+  geom_point(
+    data = ave_adj_error,
+    aes(
+      x = gabor_location,
+      y = group_var,
+      group = label,
+      color = label,
+      size = 0.4
+    ),
+    position = position_dodge(0.8),
+    stat = "identity",
+    alpha = 0.8,
+    show.legend = FALSE) +
+  
+  geom_errorbar(
+    data = ave_adj_error,
+    aes(
+      x = gabor_location,
+      y = group_var,
+      ymin = group_var - group_var_ci,
+      ymax = group_var + group_var_ci,
+      group = label,
+      color = label
+    ),
+    
+    size  = 0.8,
+    width = .00,
+    alpha = 0.5,
+    position = position_dodge(0.8)
+  ) +
+  
+  
+  labs(y = "Group Variability", x = "Gabor Location") +
+  
+  # scale_y_continuous(limits = c(2, 12)) +
+  
+  scale_x_discrete(labels = c("inner_resp" = "Inner", 
+                              "midd_resp" = "Middle",
+                              "outer_resp" = "Outer",
+                              "SingelVertical" = "SV",
+                              "SingerHorizontal" = "SH")) + 
+  
+  scale_color_manual(
+    labels = c("Radial Ladder",  "Radial Sanke"),
+    values = c("#BB5566", "#674EA7"),
+    name = "Gabor type"
+  ) +
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  facet_wrap(~ abs_ori, nrow = 1, labeller = labeller(
+    abs_ori =
+      c("2" = "2°",
+        "4" = "4°",
+        "10" = "10°"
+      )
+  ))
+
+plot_group_variability
+
+# model
+
+# variables
+str(data_exp4_long_format_ss3)
+
+data_exp4_long_format_ss3$abs_ori <-as.factor(data_exp4_long_format_ss3$abs_ori)
+data_exp4_long_format_ss3$gabor_location <-as.factor(data_exp4_long_format_ss3$gabor_location)
+data_exp4_long_format_ss3$label <-as.factor(data_exp4_long_format_ss3$label)
+
+table(data_exp4_long_format_ss3$abs_ori)
+table(data_exp4_long_format_ss3$gabor_location)
+table(data_exp4_long_format_ss3$label)
+
+
+model <- lme4::lmer(adj_error_shortest_dis ~ 
+                      abs_ori + gabor_location + label + (1|participant), 
+                    data = data_exp4_long_format_ss3)
+
+model3 <- lme4::lmer(adj_error_shortest_dis ~ 
+                      abs_ori + label + (1|participant), 
+                    data = data_exp4_long_format_ss3)
+
+model2 <- lme4::lmer(adj_error_shortest_dis ~ 
+                      abs_ori * gabor_location * label + (1|participant), 
+                    data = data_exp4_long_format_ss3) # selected model
+
+
+
+anova(model, model3)
+summary(model2)
+
+sjPlot::tab_model(
+  model2,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
+
+
+# pairwise comparisons
+emms <- emmeans::emmeans(
+  model2,
+  list(pairwise ~ gabor_location | abs_ori * label),
+  adjust = "tukey"
+)
+
+summary(emms, infer = TRUE)
 
 
