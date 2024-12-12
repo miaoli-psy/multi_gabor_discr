@@ -106,6 +106,169 @@ levels(data_exc_ss1$full_condition2)
 anova(model, model2)
 summary(model)
 
+
+predictions <- merTools::predictInterval(
+  model,
+  newdata = data_exc_ss1,
+  level = 0.95,  
+  n.sims = 1000, 
+  which = "full" # fixed effects
+)
+
+data_exc_ss1 <- cbind(data_exc_ss1, predictions)
+# plot
+
+data_by_subject <- data_exc_ss1 %>%
+  group_by(participant,
+           trials.setsize,
+           gabor_arrangment,
+           gabor_type,
+           full_condition2) %>%
+  summarise(
+    trials.intensity.pre.mean = mean(fit),
+    ci_low = mean(lwr),
+    ci_high = mean(upr),
+    n = n()
+  )
+
+
+data_across_subject <- data_by_subject %>%
+  group_by(trials.setsize,
+           gabor_arrangment,
+           gabor_type,
+           full_condition2) %>%
+  summarise(
+    threshold.pre.mean = mean(trials.intensity.pre.mean),
+    threshold_pre.std = sd(trials.intensity.pre.mean),
+    n = n(),
+    ci_l = mean(ci_low),
+    ci_h = mean(ci_high)
+  ) %>%
+  mutate(
+    threshold_SEM = threshold_pre.std / sqrt(n),
+    threshold_CI = threshold_SEM * qt((1 - 0.05) / 2 + .5, n - 1)
+  )
+
+
+my_plot <-  ggplot() +
+
+  geom_point(
+    data = data_across_subject,
+    aes(
+      x = as.numeric(trials.setsize),
+      y = threshold.pre.mean,
+      group = gabor_type,
+      color = gabor_type,
+      size = 0.5
+    ),
+
+    position = position_dodge(0.5),
+    stat = "identity",
+    alpha = 0.6
+  ) +
+
+  # geom_point(
+  #   data = data_exc_ss1,
+  #   aes(
+  #     x = as.numeric(trials.setsize),
+  #     y = fit,
+  #     group = gabor_type,
+  #     color = gabor_type,
+  #     size = 0.4
+  #   ),
+  #   alpha = 0.1,
+  #   position = position_dodge(0.5)
+  # ) +
+
+  # geom_line(
+  #   data = data_across_subject,
+  #     aes(
+  #       x = as.numeric(trials.setsize),
+  #       y = threshold.pre.mean,
+  #       group = gabor_type,
+  #       color = gabor_type,
+  #       size = 0.1)
+  #   )+
+    
+  stat_smooth(
+    data = data_across_subject,
+    aes(
+      x = as.numeric(trials.setsize),
+      y = threshold.pre.mean,
+      group = gabor_type,
+      color = gabor_type
+    ),
+    method = "lm",
+    size = 1.5,
+    se = FALSE,
+    alpha = 0.5,
+    geom = "line",
+    show.legend = FALSE
+  )+
+
+  geom_errorbar(
+    data = data_across_subject,
+    aes(
+      x = as.numeric(trials.setsize),
+      y = threshold.pre.mean,
+      ymin = threshold.pre.mean - threshold_CI,
+      ymax = threshold.pre.mean + threshold_CI,
+      group = gabor_type,
+      color = gabor_type
+    ),
+    size  = 0.8,
+    width = .00,
+    alpha = 0.8,
+    position = position_dodge(0.5)
+  ) +
+
+  labs(y = "Threshold predicted by LMM", x = "Set size") +
+
+
+  scale_color_manual(
+    labels = c("Ladder", "Snake"),
+    values = c("#F28522", "#674EA7"), #DDAA33
+    name = "gabor type"
+  ) +
+
+
+  scale_y_continuous(limits = c(1, 5)) +
+
+  scale_x_continuous(breaks = c(2, 3, 5, 7),
+                     labels = c("2", "3", "5", "7"), limits = c(1.5, 7.5))+
+
+  theme(
+    axis.title.x = element_text(color = "black", size = 14, face = "bold"),
+    axis.title.y = element_text(color = "black", size = 14, face = "bold"),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold")
+  ) +
+
+
+  facet_wrap(~ gabor_arrangment, nrow = 1, labeller = labeller(
+    gabor_arrangment = 
+      c("radial" = "Radial",
+      "tangential" = "Tangential")
+  ))
+
+
+my_plot
+
+
 #variance-covariance matrix for fixed effects (needed for SEs of combined slopes)
 vcov_matrix <- vcov(model)
 
@@ -609,7 +772,7 @@ ave_adj_error <- ave_adj_error_by_participant %>%
   )
 
 # error type distribution
-# scaling_factor <- 100 / 10 # if secondary y-axis is added
+scaling_factor <- 100 / 10 # if secondary y-axis is added
 
 plot <- ggplot() +
   
@@ -628,39 +791,35 @@ plot <- ggplot() +
             position = position_stack(vjust = 0.5), # Adjust position for stacking
             color = "black", size = 3) +
   
-  # geom_point(data = ave_adj_error,
-  #            aes(x = gabor_location, 
-  #                y = (adj_error_mean + 5) * scaling_factor),
-  #            shape = 21,
-  #            color = "black", size = 3.5) + # Use points for averages
-  # 
-  # geom_errorbar(data = ave_adj_error,
-  #               aes(x = gabor_location, 
-  #                   ymin = (adj_error_mean - adj_error_ci + 5) * scaling_factor, 
-  #                   ymax = (adj_error_mean + adj_error_ci + 5) * scaling_factor),
-  #               width = 0, color = "black",
-  #               linewidth = 0.8) + # Add error bars for averages
-  
+  geom_point(data = ave_adj_error,
+             aes(x = gabor_location,
+                 y = (adj_error_mean + 5) * scaling_factor),
+             shape = 21,
+             color = "black", size = 3.5) + # Use points for averages
+
+  geom_errorbar(data = ave_adj_error,
+                aes(x = gabor_location,
+                    ymin = (adj_error_mean - adj_error_ci + 5) * scaling_factor,
+                    ymax = (adj_error_mean + adj_error_ci + 5) * scaling_factor),
+                width = 0, color = "black",
+                linewidth = 0.8) + # Add error bars for averages
+
   # geom_text(data = ave_adj_error,
-  #           aes(x = gabor_location, 
-  #               y = (adj_error_mean + 5) * scaling_factor, 
+  #           aes(x = gabor_location,
+  #               y = (adj_error_mean + 5) * scaling_factor,
   #               label = sprintf("%.2f", adj_error_mean)),
   #           color = "red", vjust = -0.5, size = 3) + # Add labels for averages
-  
+
   # Scales and secondary axis
-  # scale_y_continuous(
-  #   name = "Percentage (0-100%)",
-  #   limits = c(-1, 101), # Fix primary y-axis range to 0-100
-  #   sec.axis = sec_axis(
-  #     trans = ~ . / scaling_factor - 5, # Map back to -5 to 5
-  #     name = "Adjustment Error (-5° to 5°)" # Label for the secondary axis
-  #   )
-  # ) +
-  
   scale_y_continuous(
     name = "Percentage (0-100%)",
-    limits = c(-1, 101)
+    limits = c(-15, 101), # Fix primary y-axis range to 0-100
+    sec.axis = sec_axis(
+      trans = ~ . / scaling_factor - 5, # Map back to -5 to 5
+      name = "Adjustment Error (-5° to 5°)" # Label for the secondary axis
+    )
   ) +
+  
   labs(
     title = "",
     x = "Location",
@@ -721,6 +880,8 @@ plot <- ggplot() +
              ))
 
 plot
+
+ggsave(file = "plot.svg", plot = plot,  width = 13, height = 7.5, units = "in")
 
 
 plot_mean_adj_error <- ggplot() +
@@ -812,6 +973,93 @@ plot_mean_adj_error <- ggplot() +
   ))
 
 plot_mean_adj_error
+
+plot_mean_adj_error2 <- ggplot() +
+  geom_point(
+    data = ave_adj_error,
+    aes(
+      x = abs_ori,
+      y = adj_error_mean,
+      group = gabor_location,
+      color = gabor_location,
+      size = 0.4
+    ),
+    position = position_dodge(0.8),
+    stat = "identity",
+    alpha = 0.8,
+    show.legend = FALSE) +
+  
+  geom_errorbar(
+    data = ave_adj_error,
+    aes(
+      x = abs_ori,
+      y = adj_error_mean,
+      ymin = adj_error_mean - adj_error_ci,
+      ymax = adj_error_mean + adj_error_ci,
+      group = gabor_location,
+      color = gabor_location
+    ),
+    
+    size  = 0.8,
+    width = .00,
+    alpha = 0.5,
+    position = position_dodge(0.8)
+  ) +
+  
+  
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  
+  labs(y = "Adjustment Arror(°)", x = "Orientaion (°)") +
+  
+  scale_y_continuous(limits = c(-7, 6)) +
+
+  scale_color_manual(
+    labels = c("Inner",  "Middle", "Outer", "Singel Vertical", "Singel Horizontal"),
+    values = c("#2066a8", "#ea801c", "#1f6f6f", "#b8b8b8", "black"),
+    name = "Gabor Location"
+  ) +
+
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  facet_wrap(~ label, nrow = 1, labeller = labeller(
+    label =
+      c("ladder" = "Radial Ladder",
+        "snake" = "Radial Snake")
+  ))
+
+
+
+plot_mean_adj_error2
+
+# ggsave(file = "plot_mean_adj_error2.svg", plot = plot_mean_adj_error2,  width = 9.4, height = 3.8, units = "in")
+
 
 plot_group_variability <- ggplot() +
   geom_point(
@@ -923,14 +1171,17 @@ model3 <- lme4::lmer(adj_error_shortest_dis ~
                       abs_ori + label + (1|participant), 
                     data = data_exp4_long_format_ss3)
 
-model2 <- lme4::lmer(adj_error_shortest_dis ~ 
-                      abs_ori * gabor_location * label + (1|participant), 
-                    data = data_exp4_long_format_ss3) # selected model
+model2<- lme4::lmer(adj_error_shortest_dis ~ 
+                      abs_ori * gabor_location * label + (1|participant) , 
+                    data = data_exp4_long_format_ss3, REML = TRUE) # selected model
 
 
 
 anova(model, model3)
 summary(model2)
+
+# 10 min (Type II Wald F tests with Kenward-Roger df)
+# car::Anova(model2,type="II",test.statistic="F")
 
 sjPlot::tab_model(
   model2,
@@ -950,4 +1201,42 @@ emms <- emmeans::emmeans(
 
 summary(emms, infer = TRUE)
 
+
+# plot 3-way interaction
+emmeans_three_way <- emmeans::emmeans(model2, ~ abs_ori * gabor_location * label)
+
+# pairwise comparisons for all combinations
+pairs(emmeans_three_way)
+# get emmeans for three-way interaction
+plot_data_three_way <- as.data.frame(emmeans_three_way)
+
+# plot
+ggplot(plot_data_three_way, aes(x = abs_ori, y = emmean, color = gabor_location, group = gabor_location)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  facet_wrap(~ label) +
+  labs(title = "Three-Way Interaction: abs_ori × gabor_location × label",
+       x = "Orientation Difference (abs_ori)",
+       y = "Estimated Adjustment Error",
+       color = "Gabor Location") +
+  theme_minimal()
+
+
+
+# multinomial logistic
+data_exp4_long_format_ss3$error_types <- factor(data_exp4_long_format_ss3$error_types, levels = c(
+   "correct", "repulsion", "compression", "inversion"))
+
+model <- nnet::multinom(error_types ~ label + abs_ori + gabor_location, data = data_exp4_long_format_ss3)
+summary(model)
+
+
+
+sjPlot::tab_model(
+  model,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
 
