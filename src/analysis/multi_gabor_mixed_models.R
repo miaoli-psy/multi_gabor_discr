@@ -7,6 +7,21 @@ library(ggpubr)
 # -------------exp1/exp2 --------------------------------------------------
 setwd("d:/OneDrive/projects/multi_gabor_discr/data/")
 
+# ----------functions----------------
+
+# cal the shortest angular distance between two angles
+angle_dist <- function(a, b) {
+  # diff between angles a and b
+  c <- a - b
+  
+  # normalize the diffcto be within the range of -90 to 90 degrees
+  # (c + 90) % 180 shifts the range of c to [0, 180) by adding 90, 
+  # then taking modulo 180 subtracting 90 shifts the range back to [-90, 90)
+  normalized_angle <- (c + 90) %% 180 - 90
+  
+  return (normalized_angle)
+}
+
 # ----------------Exp 1----------------------------
 # read data
 # exp1 gbr_sc_threshold1.xlsx; exp2 gbr_sc_threshold2.xlsx
@@ -180,31 +195,31 @@ my_plot <-  ggplot() +
   #   position = position_dodge(0.5)
   # ) +
 
-  # geom_line(
-  #   data = data_across_subject,
-  #     aes(
-  #       x = as.numeric(trials.setsize),
-  #       y = threshold.pre.mean,
-  #       group = gabor_type,
-  #       color = gabor_type,
-  #       size = 0.1)
-  #   )+
-    
-  stat_smooth(
+  geom_line(
     data = data_across_subject,
-    aes(
-      x = as.numeric(trials.setsize),
-      y = threshold.pre.mean,
-      group = gabor_type,
-      color = gabor_type
-    ),
-    method = "lm",
-    size = 1.5,
-    se = FALSE,
-    alpha = 0.5,
-    geom = "line",
-    show.legend = FALSE
-  )+
+      aes(
+        x = as.numeric(trials.setsize),
+        y = threshold.pre.mean,
+        group = gabor_type,
+        color = gabor_type,
+        size = 0.1)
+    )+
+    
+  # stat_smooth(
+  #   data = data_across_subject,
+  #   aes(
+  #     x = as.numeric(trials.setsize),
+  #     y = threshold.pre.mean,
+  #     group = gabor_type,
+  #     color = gabor_type
+  #   ),
+  #   method = "lm",
+  #   size = 1.5,
+  #   se = FALSE,
+  #   alpha = 0.5,
+  #   geom = "line",
+  #   show.legend = FALSE
+  # )+
 
   geom_errorbar(
     data = data_across_subject,
@@ -267,6 +282,8 @@ my_plot <-  ggplot() +
 
 
 my_plot
+
+# ggsave(file = "exp1.svg", plot = my_plot,  width = 8.0, height = 4.6, units = "in")
 
 
 #variance-covariance matrix for fixed effects (needed for SEs of combined slopes)
@@ -417,6 +434,163 @@ emms3 <- emmeans::emmeans(
 summary(emms3, infer = TRUE)
 
 
+# plot
+
+predictions <- merTools::predictInterval(
+  model,
+  newdata = data_exp3_threshold,
+  level = 0.95,  
+  n.sims = 1000, 
+  which = "full" # fixed effects
+)
+
+data_exp3_threshold <- cbind(data_exp3_threshold, predictions)
+
+
+data_by_subject <- data_exp3_threshold %>%
+  group_by(participant,
+           setsize,
+           gabor_type) %>%
+  summarise(
+    trials.intensity.pre.mean = mean(fit),
+    ci_low = mean(lwr),
+    ci_high = mean(upr),
+    n = n()
+  )
+
+
+data_across_subject <- data_by_subject %>%
+  group_by(setsize,
+           gabor_type) %>%
+  summarise(
+    threshold.pre.mean = mean(trials.intensity.pre.mean),
+    threshold_pre.std = sd(trials.intensity.pre.mean),
+    n = n(),
+    ci_l = mean(ci_low),
+    ci_h = mean(ci_high)
+  ) %>%
+  mutate(
+    threshold_SEM = threshold_pre.std / sqrt(n),
+    threshold_CI = threshold_SEM * qt((1 - 0.05) / 2 + .5, n - 1)
+  )
+
+
+
+
+my_plot3 <-  ggplot() +
+  
+  geom_point(
+    data = data_across_subject,
+    aes(
+      x = as.numeric(setsize),
+      y = threshold.pre.mean,
+      group = gabor_type,
+      color = gabor_type,
+      size = 0.5
+    ),
+    
+    position = position_dodge(0.5),
+    stat = "identity",
+    alpha = 0.6
+  ) +
+  
+  # geom_point(
+  #   data = data_exc_ss1,
+  #   aes(
+  #     x = as.numeric(trials.setsize),
+  #     y = fit,
+  #     group = gabor_type,
+  #     color = gabor_type,
+  #     size = 0.4
+  #   ),
+  #   alpha = 0.1,
+  #   position = position_dodge(0.5)
+  # ) +
+  
+  geom_line(
+    data = data_across_subject,
+    aes(
+      x = as.numeric(setsize),
+      y = threshold.pre.mean,
+      group = gabor_type,
+      color = gabor_type,
+      size = 0.1)
+  )+
+  
+  # stat_smooth(
+  #   data = data_across_subject,
+  #   aes(
+  #     x = as.numeric(trials.setsize),
+  #     y = threshold.pre.mean,
+  #     group = gabor_type,
+  #     color = gabor_type
+  #   ),
+  #   method = "lm",
+  #   size = 1.5,
+  #   se = FALSE,
+  #   alpha = 0.5,
+  #   geom = "line",
+  #   show.legend = FALSE
+  # )+
+  
+  geom_errorbar(
+    data = data_across_subject,
+    aes(
+      x = as.numeric(setsize),
+      y = threshold.pre.mean,
+      ymin = threshold.pre.mean - threshold_CI,
+      ymax = threshold.pre.mean + threshold_CI,
+      group = gabor_type,
+      color = gabor_type
+    ),
+    size  = 0.8,
+    width = .00,
+    alpha = 0.8,
+    position = position_dodge(0.5)
+  ) +
+  
+  labs(y = "Threshold predicted by LMM", x = "Set size") +
+  
+  
+  scale_color_manual(
+    labels = c("Ladder", "Snake"),
+    values = c("#F28522", "#674EA7"), #DDAA33
+    name = "gabor type"
+  ) +
+
+
+  scale_y_continuous(limits = c(1, 5)) +
+
+  scale_x_continuous(breaks = c(1, 2, 3, 5),
+                     labels = c("1", "2", "3", "5"), limits = c(0.5, 5.5))+
+
+  theme(
+    axis.title.x = element_text(color = "black", size = 14, face = "bold"),
+    axis.title.y = element_text(color = "black", size = 14, face = "bold"),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold")
+  ) 
+  
+
+my_plot3
+
+ggsave(file = "exp3.svg", plot = my_plot3,  width = 5, height = 4.6, units = "in")
+
+
 
 # get slopes, test against 0
 vcov_matrix <- vcov(model)
@@ -458,6 +632,7 @@ colnames(data_exp3_uniformity)
 
 # factor
 data_exp3_uniformity$gabor_type2 <-as.factor(data_exp3_uniformity$gabor_type2)
+
 levels(data_exp3_uniformity$gabor_type2)
 
 # remove setsize 1 
@@ -512,9 +687,11 @@ levels(data_exp3_uniformity$correct)
 # reverse coding
 data_exp3_uniformity$resp_no <- ifelse(data_exp3_uniformity$resp_binary == 0, 1, 0)
 
+str(data_exp3_uniformity)
 
 model_glmm <- lme4::glmer(resp_no ~ setsize * gabor_type2 * correct + (1 | participant),
-                          data = data_exp3_uniformity, family = binomial)
+                          data = data_exp3_uniformity, family = binomial) # selected model
+
 model_glmm2 <- lme4::glmer(resp_no ~ setsize * gabor_type2 + (1 | participant),
                           data = data_exp3_uniformity, family = binomial)
 anova(model_glmm, model_glmm2)
@@ -529,18 +706,100 @@ sjPlot::tab_model(
   digits = 3
 ) 
 
+# plot prediction
+
+predictions <- ggeffects::ggpredict(
+  model_glmm, 
+  terms = c("setsize", "gabor_type2", "correct")  # Specify predictors
+)
+
+# Plot predicted probabilities
+my_plot_exp3_uniformaty <- ggplot()+
+  geom_line(data = predictions,
+            aes(
+              x = x, 
+              y = predicted, 
+              color = group),
+            size = 1.2,
+            alpha = 0.5
+            )+  
+  geom_ribbon(data = predictions,
+              aes
+              (x = x,
+                ymin = conf.low, 
+                ymax = conf.high, 
+                fill = group), 
+              alpha = 0.1) +  
+  
+  scale_color_manual(
+    labels = c("Ladder", "Snake"),
+    values = c("#F28522", "#674EA7"), #DDAA33
+    name = "gabor type") +
+  
+    scale_fill_manual(
+      labels = c("Ladder", "Snake"),
+      values = c("#F28522", "#674EA7"), #DDAA33
+      name = "gabor type"
+    
+  ) +
+  
+  scale_y_continuous(limits = c(0, 0.8)) +
+  
+  labs(
+    x = "Set Size",
+    y = "Predicted Probability",
+    color = "Gabor Type",
+    fill = "Gabor Type"
+  ) +
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) +
+  
+  facet_wrap(~facet, nrow = 1, labeller = labeller(
+    facet =
+      c("0" = "Wrong Judgment",
+        "1" = "Correct Judgment"
+      )
+  ))  
+
+my_plot_exp3_uniformaty
+
+
+ggsave(file = "exp3_uni.svg", plot = my_plot_exp3_uniformaty,  width = 8, height = 4.6, units = "in")
+
+
+
+
 r2 <- MuMIn::r.squaredGLMM(model_glmm)
 r2
 
-data_exp3_uniformity$predicted <- predict(model_glmm, type = "response")
 
-
-ggplot(data_exp3_uniformity, aes(x = setsize, y = predicted, color = gabor_type2)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(title = "Predicted Probabilities of Judging Items as Different",
-       x = "Set Size", y = "Predicted Probability")+
-  facet_wrap(~correct)
 
 
 # slopes
@@ -663,19 +922,6 @@ data_exp4_long_format <- data_exp4_long_format %>%
       gabor_location == "midd_resp" ~ "midd_resp",
       gabor_location == "outer_resp" ~ "outer_resp"))
 
-
-# cal the shortest angular distance between two angles
-angle_dist <- function(a, b) {
-  # diff between angles a and b
-  c <- a - b
-  
-  # normalize the diffcto be within the range of -90 to 90 degrees
-  # (c + 90) % 180 shifts the range of c to [0, 180) by adding 90, 
-  # then taking modulo 180 subtracting 90 shifts the range back to [-90, 90)
-  normalized_angle <- (c + 90) %% 180 - 90
-  
-  return (normalized_angle)
-}
 
 # mirroring resp if ori is negative
 
@@ -1239,4 +1485,194 @@ sjPlot::tab_model(
   show.stat = T,
   digits = 3
 ) 
+
+
+# --------exp4: errors are not independent within a trial----------
+
+# read data
+# gabor_adjst_ori_alldata.csv
+data_exp4<- read.csv(file.choose())
+
+selected_data <- data_exp4 %>%
+  dplyr::select(label, ori, abs_ori, participant, inner_resp, midd_resp, outer_resp)
+
+# for single gabor, middle and outer location fill out
+selected_data[is.na(selected_data)] <- 9999
+
+# mirroring resp if ori is negative
+data_exp4 <- selected_data %>% 
+  mutate(inner_resp_mirror = if_else(ori < 0, inner_resp * -1, inner_resp)) %>% 
+  # adjustment error
+  mutate(adj_error_inner = inner_resp_mirror - abs_ori) %>% 
+  mutate(adj_error_shortest_dis_inner = angle_dist(inner_resp_mirror, abs_ori)) %>% 
+
+  mutate(outer_resp_mirror = if_else(ori < 0, outer_resp * -1, outer_resp)) %>% 
+  mutate(adj_error_outer = outer_resp_mirror - abs_ori) %>% 
+  mutate(adj_error_shortest_dis_outer = angle_dist(outer_resp_mirror, abs_ori)) %>% 
+  
+  mutate(midd_resp_mirror = if_else(ori < 0, midd_resp * -1, midd_resp)) %>% 
+  mutate(adj_error_midd = midd_resp_mirror - abs_ori) %>% 
+  mutate(adj_error_shortest_dis_midd = angle_dist(midd_resp_mirror, abs_ori))
+
+
+# add adjustment error type
+data_exp4 <- data_exp4 %>% 
+  mutate(
+    compression_limit = case_when(
+      abs_ori == 10 ~ -10,
+      abs_ori == 4 ~ -4,
+      abs_ori == 2 ~ -2,
+      TRUE ~ 100 # default for any unhandled `abs_ori` value
+    ),
+    inner_error_types = case_when(
+      adj_error_shortest_dis_inner > 0 & adj_error_shortest_dis_inner <= 90 ~ "repulsion",
+      adj_error_shortest_dis_inner >= adj_error_shortest_dis_inner & adj_error_shortest_dis_inner < 0 ~ "compression",
+      adj_error_shortest_dis_inner >= -90 & adj_error_shortest_dis_inner < compression_limit ~ "inversion",
+      adj_error_shortest_dis_inner == 0 ~ "correct"
+    ),
+    
+    outer_error_types = case_when(
+      adj_error_shortest_dis_outer > 0 & adj_error_shortest_dis_outer <= 90 ~ "repulsion",
+      adj_error_shortest_dis_outer >= compression_limit & adj_error_shortest_dis_outer < 0 ~ "compression",
+      adj_error_shortest_dis_outer >= -90 & adj_error_shortest_dis_outer < compression_limit ~ "inversion",
+      adj_error_shortest_dis_outer == 0 ~ "correct"
+    ),
+    
+    midd_error_types = case_when(
+      adj_error_shortest_dis_midd > 0 & adj_error_shortest_dis_midd <= 90 ~ "repulsion",
+      adj_error_shortest_dis_midd >= compression_limit & adj_error_shortest_dis_midd < 0 ~ "compression",
+      adj_error_shortest_dis_midd >= -90 & adj_error_shortest_dis_midd < compression_limit ~ "inversion",
+      adj_error_shortest_dis_midd == 0 ~ "correct"
+    )
+  )
+
+
+# split setsize 3 and setsize 1
+data_exp4_setsize3 <- subset(data_exp4, label %in% c("setsize3_r_ladder", "setsize3_r_snake"))
+data_exp4_setsize1 <- subset(data_exp4, label %in% c("setsize1_v", "setsize1_h"))
+
+# write.csv(data_exp4_setsize3, "data.csv",row.names = FALSE)
+
+# check error correlations
+
+unique(data_exp4_setsize3$label)
+
+# split by label
+data_ladder <- data_exp4_setsize3[data_exp4_setsize3$label == "setsize3_r_ladder", ]
+
+data_ladder2 <- data_ladder[data_ladder$abs_ori == 2, ]
+data_ladder4 <- data_ladder[data_ladder$abs_ori == 4, ]
+data_ladder10 <- data_ladder[data_ladder$abs_ori == 10, ]
+
+data_snake <- data_exp4_setsize3[data_exp4_setsize3$label == "setsize3_r_snake", ] 
+
+data_snake2 <- data_snake[data_snake$abs_ori == 2, ]
+data_snake4 <- data_snake[data_snake$abs_ori == 4, ]
+data_snake10 <- data_snake[data_snake$abs_ori == 10, ]
+
+
+calculate_correlations_with_p <- function(df, cond_name) {
+  cat("Condition:", cond_name, "\n")
+  
+  # Inner vs. Middle
+  res1 <- cor.test(df$adj_error_shortest_dis_inner, df$adj_error_shortest_dis_midd, method = "pearson")
+  cat("Inner vs. Middle: r =", res1$estimate, ", p =", res1$p.value, "\n")
+  
+  # Inner vs. Outer
+  res2 <- cor.test(df$adj_error_shortest_dis_inner, df$adj_error_shortest_dis_outer, method = "pearson")
+  cat("Inner vs. Outer: r =", res2$estimate, ", p =", res2$p.value, "\n")
+  
+  # Middle vs. Outer
+  res3 <- cor.test(df$adj_error_shortest_dis_midd, df$adj_error_shortest_dis_outer, method = "pearson")
+  cat("Middle vs. Outer: r =", res3$estimate, ", p =", res3$p.value, "\n\n")
+}
+
+# all conditions
+calculate_correlations_with_p(data_ladder2, "2 Degrees - Ladder")
+calculate_correlations_with_p(data_snake2, "2 Degrees - Snake")
+calculate_correlations_with_p(data_ladder4, "4 Degrees - Ladder")
+calculate_correlations_with_p(data_snake4, "4 Degrees - Snake")
+calculate_correlations_with_p(data_ladder10, "10 Degrees - Ladder")
+calculate_correlations_with_p(data_snake10, "10 Degrees - Snake")
+
+
+
+plot_correlation <- function(df, cond_name, x_col, y_col, x_label, y_label) {
+  ggplot(df, aes_string(x = x_col, y = y_col)) +
+    geom_point(alpha = 0.2) +
+    geom_smooth(method = "lm", color = "blue", alpha = 0.8) +
+    labs(title = paste0(cond_name, ": ", x_label, " vs. ", y_label),
+         x = x_label,
+         y = y_label) +
+    
+    scale_y_continuous(limits = c(-50, 50)) +
+    
+    scale_x_continuous(limits = c(-50, 50)) +
+    
+    theme(
+      axis.title.x = element_text(
+        color = "black",
+        size = 14,
+        face = "bold"
+      ),
+      axis.title.y = element_text(
+        color = "black",
+        size = 14,
+        face = "bold"
+      ),
+      panel.border = element_blank(),
+      # remove panel grid lines
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      # remove panel background
+      panel.background = element_blank(),
+      # add axis line
+      axis.line = element_line(colour = "grey"),
+      # x,y axis tick labels
+      axis.text.x = element_text(size = 12, face = "bold"),
+      axis.text.y = element_text(size = 12, face = "bold"),
+      # legend size
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 10),
+      # facet wrap title
+      strip.text.x = element_text(size = 12, face = "bold"),
+      panel.spacing = unit(1.0, "lines")
+    )
+}
+
+# Generate plots for all conditions
+
+plots <- list(
+  plot_correlation(data_ladder2, "2 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle"),
+  plot_correlation(data_ladder2, "2 Degrees - Ladder", "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer"),
+  plot_correlation(data_ladder2, "2 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer"),
+  
+  plot_correlation(data_ladder4, "4 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle"),
+  plot_correlation(data_ladder4, "4 Degrees - Ladder", "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer"),
+  plot_correlation(data_ladder4, "4 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer"),
+  
+  plot_correlation(data_ladder10, "10 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle"),
+  plot_correlation(data_ladder10, "10 Degrees - Ladder", "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer"),
+  plot_correlation(data_ladder10, "10 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer"),
+  
+  plot_correlation(data_snake2, "2 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle"),
+  plot_correlation(data_snake2, "2 Degrees - Ladder", "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer"),
+  plot_correlation(data_snake2, "2 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer"),
+  
+  plot_correlation(data_snake4, "4 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle"),
+  plot_correlation(data_snake4, "4 Degrees - Ladder", "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer"),
+  plot_correlation(data_snake4, "4 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer"),
+  
+  plot_correlation(data_snake10, "10 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle"),
+  plot_correlation(data_snake10, "10 Degrees - Ladder", "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer"),
+  plot_correlation(data_snake10, "10 Degrees - Ladder", "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer")
+)
+
+# Save plots
+for (i in seq_along(plots)) {
+  ggsave(file = paste0("p", i, ".svg"), plot = plots[[i]], width = 2.5, height = 2.5, units = "in")
+}
+
+
+
 
