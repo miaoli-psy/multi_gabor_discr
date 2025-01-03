@@ -4,6 +4,7 @@ library(ggplot2)
 library(ggthemes)
 library(svglite)
 library(ggpubr)
+library(car)
 # -------------exp1/exp2 --------------------------------------------------
 setwd("d:/OneDrive/projects/multi_gabor_discr/data/")
 
@@ -1675,4 +1676,108 @@ for (i in seq_along(plots)) {
 
 
 
+plot_correlation2 <- function(df, x_col, y_col, x_label, y_label, label, abs_ori) {
+  ggplot(df, aes_string(x = x_col, y = y_col, color = label)) +
+    geom_point(alpha = 0.1) +
+    geom_smooth(method = "lm", se = FALSE, alpha = 0.2) +
+    labs(title = paste0( x_label, " vs. ", y_label),
+         x = x_label,
+         y = y_label) +
+    
+    scale_color_manual(
+      labels = c("setsize3_r_ladder",  "setsize3_r_snake"),
+      values = c("#F28522", "#674EA7"),
+      name = "Gabor Location"
+    ) +
+    
+    scale_y_continuous(limits = c(-50, 50)) +
+    
+    scale_x_continuous(limits = c(-50, 50)) +
+    
+    theme(
+      axis.title.x = element_text(
+        color = "black",
+        size = 14,
+        face = "bold"
+      ),
+      axis.title.y = element_text(
+        color = "black",
+        size = 14,
+        face = "bold"
+      ),
+      panel.border = element_blank(),
+      # remove panel grid lines
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      # remove panel background
+      panel.background = element_blank(),
+      # add axis line
+      axis.line = element_line(colour = "grey"),
+      # x,y axis tick labels
+      axis.text.x = element_text(size = 12, face = "bold"),
+      axis.text.y = element_text(size = 12, face = "bold"),
+      # legend size
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 10),
+      # facet wrap title
+      strip.text.x = element_text(size = 12, face = "bold"),
+      panel.spacing = unit(1.0, "lines")
+    ) +
+    facet_wrap(~ abs_ori, nrow = 1, labeller = labeller(
+      abs_ori =
+        c("2" = "2°",
+          "4" = "4°",
+          "10" = "10°"
+        )))
+}
+
+plots <- list(
+  plot_correlation2(data_exp4_setsize3, "adj_error_shortest_dis_inner", "adj_error_shortest_dis_midd", "Inner", "Middle", "label", "abs_ori"),
+  plot_correlation2(data_exp4_setsize3, "adj_error_shortest_dis_midd", "adj_error_shortest_dis_outer", "Middle", "Outer", "label", "abs_ori"),
+  plot_correlation2(data_exp4_setsize3, "adj_error_shortest_dis_inner", "adj_error_shortest_dis_outer", "Inner", "Outer", "label", "abs_ori")
+)
+for (i in seq_along(plots)) {
+  ggsave(file = paste0("p", i, ".svg"), plot = plots[[i]], width = 12, height = 4, units = "in")
+}
+
+# # MANOVA
+# 
+# # check assumptions normality
+# hist(data_exp4_setsize3$adj_error_shortest_dis_inner, breaks = 20, main = "Histogram of Errors (Inner)")
+# hist(data_exp4_setsize3$adj_error_shortest_dis_outer, breaks = 20, main = "Histogram of Errors (Outer)")
+# hist(data_exp4_setsize3$adj_error_shortest_dis_midd, breaks = 20, main = "Histogram of Errors (Middle)")
+# qqnorm(data_exp4_setsize3$adj_error_shortest_dis_inner)
+# qqline(data_exp4_setsize3$adj_error_shortest_dis_inner, col = "red")
+# qqnorm(data_exp4_setsize3$adj_error_shortest_dis_midd)
+# qqline(data_exp4_setsize3$adj_error_shortest_dis_midd, col = "red")
+# qqnorm(data_exp4_setsize3$adj_error_shortest_dis_outer)
+# qqline(data_exp4_setsize3$adj_error_shortest_dis_outer, col = "red")
+# 
+# # check homogeneity
+# data_exp4_setsize3$abs_ori <- as.factor(data_exp4_setsize3$abs_ori)
+# data_exp4_setsize3$label <- as.factor(data_exp4_setsize3$label)
+# 
+# car::leveneTest(adj_error_shortest_dis_inner ~ abs_ori * label, data = data_exp4_setsize3)
+# car::leveneTest(adj_error_shortest_dis_midd ~ abs_ori * label, data = data_exp4_setsize3)
+# car::leveneTest(adj_error_shortest_dis_outer ~ abs_ori * label, data = data_exp4_setsize3)
+# 
+# # vilolate homogeneity, use Per-Manova instead
+# 
+# # Run PERMANOVA
+# data_exp4_setsize3$abs_ori <- relevel(factor(data_exp4_setsize3$abs_ori), ref = "2")
+# data_exp4_setsize3$label <- relevel(factor(data_exp4_setsize3$label), ref = "setsize3_r_ladder")
+# 
+# perm_model <- lmPerm::lmp(cbind(adj_error_shortest_dis_inner, adj_error_shortest_dis_midd, adj_error_shortest_dis_outer) ~ abs_ori * label, 
+#                   data = data_exp4_setsize3, perm = "Prob")
+# 
+# # View results
+# summary(perm_model)
+
+ggplot(data_exp4_setsize3, aes(x = adj_error_shortest_dis_inner, y = adj_error_shortest_dis_outer, color = label)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~abs_ori) +
+  labs(title = "Correlation of Adjustment Errors (Inner vs Outer)",
+       x = "Inner Adjustment Error", y = "Outer Adjustment Error") +
+  theme_minimal()
 
