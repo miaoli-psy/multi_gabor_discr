@@ -1773,11 +1773,123 @@ for (i in seq_along(plots)) {
 # # View results
 # summary(perm_model)
 
-ggplot(data_exp4_setsize3, aes(x = adj_error_shortest_dis_inner, y = adj_error_shortest_dis_outer, color = label)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~abs_ori) +
-  labs(title = "Correlation of Adjustment Errors (Inner vs Outer)",
-       x = "Inner Adjustment Error", y = "Outer Adjustment Error") +
-  theme_minimal()
 
+#  variance for each trial
+data_exp4_setsize3$variance_error <- apply(data_exp4_setsize3[, c("adj_error_shortest_dis_inner", 
+                                                                  "adj_error_shortest_dis_midd", 
+                                                                  "adj_error_shortest_dis_outer")], 
+                                           1, var)
+
+data_exp4_setsize3$abs_ori <- as.factor(data_exp4_setsize3$abs_ori)
+model_lmm_var <- lme4::lmer(variance_error ~ abs_ori * label + (1 | participant), data = data_exp4_setsize3)
+model_lmm_var2 <- lme4::lmer(variance_error ~ abs_ori + label + (1 | participant), data = data_exp4_setsize3)
+
+anova(model_lmm_var, model_lmm_var2)
+summary(model_lmm_var)
+
+sjPlot::tab_model(
+  model_lmm_var,
+  p.style = 'scientific_stars',
+  show.se = T,
+  show.stat = T,
+  digits = 3
+) 
+emmeans::emmeans(model_lmm_var, pairwise ~ label|abs_ori, adjust = "tukey")
+
+
+# predict by condition
+pred_means <- emmeans::emmeans(model_lmm_var, ~ abs_ori * label)
+summary(pred_means, infer = c(TRUE, TRUE))
+emmeans_data_to_plot <- as.data.frame(pred_means)
+str(emmeans_data_to_plot)
+
+
+plot_var <- ggplot() +
+  geom_point(
+    data = emmeans_data_to_plot,
+    aes(
+      x = abs_ori,
+      y = emmean,
+      group = label,
+      color = label
+    ),
+    size = 3,
+    position = position_dodge(0.2),
+    stat = "identity",
+    alpha = 0.8) +
+  
+  geom_errorbar(
+    data = emmeans_data_to_plot,
+    aes(
+      x = abs_ori,
+      y = emmean,
+      ymin = emmean + SE,
+      ymax = emmean - SE,
+      group = label,
+      color = label
+    ),
+    
+    size  = 0.8,
+    width = .00,
+    alpha = 0.5,
+    position = position_dodge(0.2)
+  ) +
+  
+  geom_line(
+    data = emmeans_data_to_plot,
+    aes(
+      x = abs_ori,
+      y = emmean,
+      group = label,
+      color = label
+    ),
+
+    alpha = 0.5,
+    position = position_dodge(0.2)
+  ) +
+  
+  labs(y = "Predicted Variance", x = "Orientation(°)") +
+  
+  
+  scale_color_manual(
+    labels = c("setsize3_r_ladder",  "setsize3_r_snake"),
+    values = c("#F28522", "#674EA7"),
+    name = "Gabor Location"
+  ) +
+  
+  scale_y_continuous(limits = c(0, 90)) +
+  
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  ) 
+
+plot_var
+
+ggsave(file = "plot_var.svg", plot = plot_var, width = 6.5, height = 4.5, units = "in")
