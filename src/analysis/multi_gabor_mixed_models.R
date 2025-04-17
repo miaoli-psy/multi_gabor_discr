@@ -166,6 +166,32 @@ data_across_subject <- data_by_subject %>%
   )
 
 
+# cal Single Gabor threshold
+str(data_ss1)
+
+data_by_subject_ss1 <- data_ss1 %>%
+  group_by(participant,
+           trials.setsize,
+           gabor_arrangment2) %>%
+  summarise(
+    trials.intensity.mean = mean(trials.intensity),
+    n = n()
+  )
+
+data_across_subject_ss1 <- data_by_subject_ss1 %>%
+  group_by(trials.setsize,
+           gabor_arrangment2) %>%
+  summarise(
+    threshold.mean = mean(trials.intensity.mean),
+    threshold.std = sd(trials.intensity.mean),
+    n = n()
+  ) %>%
+  mutate(
+    threshold_SEM = threshold.std / sqrt(n),
+    threshold_CI = threshold_SEM * qt((1 - 0.05) / 2 + .5, n - 1)
+  )
+
+
 my_plot <-  ggplot() +
 
   geom_point(
@@ -239,6 +265,10 @@ my_plot <-  ggplot() +
   ) +
 
   labs(y = "Threshold predicted by LMM", x = "Set size") +
+  
+  geom_hline(yintercept = data_across_subject_ss1[[1, "threshold.mean"]], linetype = "dashed", color = "black") +
+  
+  geom_hline(yintercept = data_across_subject_ss1[[2, "threshold.mean"]], linetype = "dotted", color = "grey") +
 
 
   scale_color_manual(
@@ -589,7 +619,7 @@ my_plot3 <-  ggplot() +
 
 my_plot3
 
-ggsave(file = "exp3.svg", plot = my_plot3,  width = 5, height = 4.6, units = "in")
+# ggsave(file = "exp3.svg", plot = my_plot3,  width = 5, height = 4.6, units = "in")
 
 
 
@@ -672,6 +702,18 @@ data_exp3_uniformity <- data_exp3_uniformity[-length(data_exp3_uniformity$intens
 data_exp3_uniformity <- data_exp3_uniformity %>% 
   filter(ans_same %in% c("w", "x"))
 
+# some calculations
+
+data_exp3_check <- data_exp3_uniformity %>%
+  group_by(gabor_type, correct) %>%
+  summarise(
+    n = n(),
+    .groups = "drop" 
+  ) %>%
+  group_by(gabor_type) %>%
+  mutate(
+    percentage = (n / sum(n)) * 100
+  )
 
 # GLMM
 data_exp3_uniformity <- data_exp3_uniformity %>%
