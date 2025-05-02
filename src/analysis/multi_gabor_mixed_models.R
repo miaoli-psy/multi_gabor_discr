@@ -1536,8 +1536,6 @@ sjPlot::tab_model(
 # gabor_adjst_ori_alldata.csv
 data_exp4<- read.csv(file.choose())
 
-selected_data <- data_exp4 %>%
-  dplyr::select(label, ori, abs_ori, participant, inner_resp, midd_resp, outer_resp)
 
 # for single gabor, middle and outer location fill out
 selected_data[is.na(selected_data)] <- 9999
@@ -1935,3 +1933,76 @@ plot_var <- ggplot() +
 plot_var
 
 ggsave(file = "plot_var.svg", plot = plot_var, width = 6.5, height = 4.5, units = "in")
+
+# bias (adjsutment error) - against ori
+
+data_by_subject <- data_exp4_setsize3 %>% 
+  dplyr::group_by(label, ori, participant) %>% 
+  dplyr::summarise(
+    adj_error_inner = mean(adj_error_shortest_dis_outer),
+    n = n()
+  )
+
+data_acorss_subject <- data_by_subject %>% 
+  dplyr::group_by(label, ori) %>% 
+  dplyr::summarise(
+    inner_bias = mean(adj_error_inner),
+    inner_bias_sd = sd(adj_error_inner),
+    n = n()
+  ) %>% 
+  mutate(
+    adj_error_sem = inner_bias_sd/sqrt(n)
+  )
+
+plot_bias <- ggplot() +
+  geom_point(
+    data = data_acorss_subject,
+    aes(
+      x = ori,
+      y = inner_bias,
+      group = label,
+      color = label,
+      size = 0.4),
+    position = position_dodge(0.8),
+    stat = "identity",
+    alpha = 0.8) +
+  
+  labs(y = "bias(°)", x = "ori") +
+  
+  scale_x_continuous(breaks = c(-10, -4, -2, 2, 4, 10),
+                     labels = c("-10", "-4", "-2", "2", "4", "10"), limits = c(-11, 11))+
+
+  
+  theme(
+    axis.title.x = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    axis.title.y = element_text(
+      color = "black",
+      size = 14,
+      face = "bold"
+    ),
+    panel.border = element_blank(),
+    # remove panel grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # remove panel background
+    panel.background = element_blank(),
+    # add axis line
+    axis.line = element_line(colour = "grey"),
+    # x,y axis tick labels
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    # legend size
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    # facet wrap title
+    strip.text.x = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.0, "lines")
+  )  
+
+plot_bias 
+
+
