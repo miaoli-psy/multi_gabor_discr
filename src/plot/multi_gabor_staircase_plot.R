@@ -15,11 +15,15 @@ setwd("d:/OneDrive/projects/multi_gabor_discr/src/plot/")
 
 # gbr_sc_threshold1.xlsx and gbr_sc_threshold2.xlsx
 
-data_exp1 <- readxl::read_excel(path = file.choose())
-data_exp2 <- readxl::read_excel(path = file.choose())
+# data_exp1 <- readxl::read_excel(path = file.choose())
+# data_exp2 <- readxl::read_excel(path = file.choose())
+
+data_exp1 <- readxl::read_excel("../../data/gbr_sc_threshold1.xlsx")
+data_exp2 <- readxl::read_excel("../../data/gbr_sc_threshold2.xlsx")
 
 # TODO
-data_preprocessed <- data_exp2
+data_preprocessed <- data_exp1
+
 
 # all condition
 data_by_subject <- data_preprocessed %>%
@@ -40,7 +44,6 @@ data_by_subject <- data_preprocessed %>%
   )
 
 
-
 data_across_subject <- data_by_subject %>%
   group_by(trials.setsize,
            gabor_arrangment,
@@ -57,6 +60,18 @@ data_across_subject <- data_by_subject %>%
     threshold_CI = threshold_SEM * qt((1 - 0.05) / 2 + .5, n - 1)
   )
 
+# duplicate setsize 1 condition
+s1_dup <- data_across_subject %>%
+  filter(gabor_arrangment == "s1") %>%
+  crossing(arr = c("radial", "tangential")) %>%  # temp name to avoid collision
+  mutate(gabor_arrangment = arr) %>%
+  select(-arr)
+
+data_across_subject <- data_across_subject %>%
+  filter(gabor_arrangment != "s1") %>%
+  bind_rows(s1_dup) %>%
+  mutate(gabor_arrangment = factor(gabor_arrangment, levels = c("radial","tangential")))
+
 
 my_plot <-  ggplot() +
   
@@ -65,8 +80,8 @@ my_plot <-  ggplot() +
     aes(
       x = trials.setsize,
       y = threshold_mean,
-      group = gabor_arrangment,
-      color = gabor_arrangment,
+      group = gabor_type,
+      color = gabor_type,
       size = 0.5
     ),
     
@@ -75,115 +90,19 @@ my_plot <-  ggplot() +
     alpha = 0.6
   ) +
   
-  geom_point(
-    data = data_by_subject,
-    aes(
-      x = trials.setsize,
-      y = trials.intensity.mean,
-      group = gabor_arrangment,
-      color = gabor_arrangment,
-      size = 0.5
-    ),
-    alpha = 0.05,
-    position = position_dodge(0.5)
-  ) +
-  
-  
-  geom_errorbar(
-    data = data_across_subject,
-    aes(
-      x = trials.setsize,
-      y = threshold_mean,
-      ymin = threshold_mean - threshold_SEM,
-      ymax = threshold_mean + threshold_SEM,
-      group = gabor_arrangment
-    ),
-    color = "black",
-    size  = 0.8,
-    width = .00,
-    alpha = 0.8,
-    position = position_dodge(0.5)
-  ) +
-  
-  
-  labs(y = "Threshold", x = "Set size") +
-  
-  
-  # scale_color_manual(
-  #   labels = c("radial", "tangential", "setsize1"),
-  #   values = c("#BB5566", "#004488", "grey"),
-  #   name = "anisotropy"
+  # geom_point(
+  #   data = data_by_subject,
+  #   aes(
+  #     x = trials.setsize,
+  #     y = trials.intensity.mean,
+  #     group = gabor_type,
+  #     color = gabor_type,
+  #     size = 0.5
+  #   ),
+  #   alpha = 0.05,
+  #   position = position_dodge(0.5)
   # ) +
-
-  scale_color_manual(
-    values = c(radial = "#BB5566", tangential = "#004488", s1 = "grey"),
-    name = "anisotropy"
-  ) +
-
-  
-  scale_y_continuous(limits = c(1, 5)) +
-  
-  scale_x_continuous(breaks = c(1, 2, 3, 5, 7), 
-                     labels = c("1", "2", "3", "5", "7"), limits = c(0.5, 7.5))+
-  
-  theme(
-    axis.title.x = element_text(color = "black", size = 14, face = "bold"),
-    axis.title.y = element_text(color = "black", size = 14, face = "bold"),
-    panel.border = element_blank(),
-    # remove panel grid lines
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    # remove panel background
-    panel.background = element_blank(),
-    # add axis line
-    axis.line = element_line(colour = "grey"),
-    # x,y axis tick labels
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.text.y = element_text(size = 12, face = "bold"),
-    # legend size
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 10),
-    # facet wrap title
-    strip.text.x = element_text(size = 12, face = "bold")
-  ) +
-  
-  
-  facet_wrap(~ gabor_type, nrow = 1)
-
-
-print(my_plot)
-
-
-my_plot2 <-  ggplot() +
-  
-  geom_point(
-    data = data_across_subject,
-    aes(
-      x = trials.setsize,
-      y = threshold_mean,
-      group = gabor_type,
-      color = gabor_type,
-      size = 0.5
-    ),
-    
-    position = position_dodge(0.5),
-    stat = "identity",
-    alpha = 0.6
-  ) +
-  
-  geom_point(
-    data = data_by_subject,
-    aes(
-      x = trials.setsize,
-      y = trials.intensity.mean,
-      group = gabor_type,
-      color = gabor_type,
-      size = 0.5
-    ),
-    alpha = 0.05,
-    position = position_dodge(0.5)
-  ) +
-  
+  # 
   
   geom_errorbar(
     data = data_across_subject,
@@ -192,22 +111,30 @@ my_plot2 <-  ggplot() +
       y = threshold_mean,
       ymin = threshold_mean - threshold_SEM,
       ymax = threshold_mean + threshold_SEM,
-      group = gabor_type
+      group = gabor_type,
+      color = gabor_type
     ),
-    color = "black",
     size  = 0.8,
     width = .00,
     alpha = 0.8,
     position = position_dodge(0.5)
   ) +
   
+  geom_smooth(
+    data = data_across_subject,
+    aes(x = trials.setsize, 
+        y = threshold_mean,
+        group = gabor_type,
+        color = gabor_type),
+    method = "lm", se = FALSE, formula = y ~ x, linewidth = 0.5
+  ) +
   
-  labs(y = "Threshold", x = "Set size") +
+  labs(y = "Threshold (°)", x = "Set size") +
   
 
   scale_color_manual(
     labels = c("ladder", "snake"),
-    values = c("#674EA7", "#F28522"), #DDAA33
+    values = c("#F28522", "#674EA7"), #DDAA33
     name = "gabor type"
   ) +
 
@@ -218,8 +145,8 @@ my_plot2 <-  ggplot() +
                      labels = c("1", "2", "3", "5", "7"), limits = c(0.5, 7.5))+
   
   theme(
-    axis.title.x = element_text(color = "black", size = 14, face = "bold"),
-    axis.title.y = element_text(color = "black", size = 14, face = "bold"),
+    axis.title.x = element_text(color = "black", size = 16, face = "bold"),
+    axis.title.y = element_text(color = "black", size = 16, face = "bold"),
     panel.border = element_blank(),
     # remove panel grid lines
     panel.grid.major = element_blank(),
@@ -229,145 +156,29 @@ my_plot2 <-  ggplot() +
     # add axis line
     axis.line = element_line(colour = "grey"),
     # x,y axis tick labels
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.text.y = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(size = 14, face = "bold"),
+    axis.text.y = element_text(size = 14, face = "bold"),
     # legend size
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 16, face = "bold"),
+    legend.text = element_text(size = 14),
     # facet wrap title
-    strip.text.x = element_text(size = 12, face = "bold")
+    strip.text.x = element_text(size = 16, face = "bold")
   ) +
   
   
-  facet_wrap(~ gabor_arrangment, nrow = 1)
+  facet_wrap(~ gabor_arrangment, nrow = 1, labeller = labeller(
+    gabor_arrangment = 
+      c("radial" = "Radial",
+        "tangential" = "Tangential")
+  ))
 
+print(my_plot)
 
-print(my_plot2)
-
-# ggsave(file = "test.svg", plot = my_plot, width = 14.7, height = 6.27, units = "in")
-
-data_across_subject <- data_across_subject %>%
-  mutate(
-    linetype = ifelse(full_condition2 %in% c("ladder_tangential", "snake_tangential"), "dotted", "solid"),
-    shape = ifelse(full_condition2 %in% c("ladder_tangential", "snake_tangential"), "2", "16") # 0 for empty square, 16 for filled circle
-  ) %>%
-  mutate(
-    linetype = factor(linetype, levels = c("solid", "dotted")),
-    shape = factor(shape)
-  )
-
-my_plot3 <-  ggplot() +
-  
-  geom_point(
-    data = data_across_subject,
-    aes(
-      x = trials.setsize,
-      y = threshold_mean,
-      group = full_condition2,
-      color = full_condition2,
-      shape = shape,
-      size = 0.5
-    ),
-    
-    position = position_dodge(0.5),
-    stat = "identity",
-    alpha = 0.6
-  ) +
-  
-  
-  stat_smooth(
-    data = data_across_subject,
-    aes(
-      x = trials.setsize,
-      y = threshold_mean,
-      group = full_condition2,
-      color = full_condition2,
-      linetype = linetype,
-    ),
-    method = "lm",
-    size = 1.5,
-    se = FALSE,
-    alpha = 0.5,
-    geom = "line",
-    show.legend = FALSE
-  )+
-  
-  # geom_point(
-  #   data = data_by_subject,
-  #   aes(
-  #     x = trials.setsize,
-  #     y = trials.intensity.mean,
-  #     group = full_condition2,
-  #     color = full_condition2,
-  #     size = 0.5
-  #   ),
-  #   alpha = 0.05,
-  #   position = position_dodge(0.5)
-  # ) +
-
-  
-  geom_errorbar(
-    data = data_across_subject,
-    aes(
-      x = trials.setsize,
-      y = threshold_mean,
-      ymin = threshold_mean - threshold_SEM,
-      ymax = threshold_mean + threshold_SEM,
-      group = full_condition2,
-      color = full_condition2
-    ),
-    size  = 0.8,
-    width = .00,
-    alpha = 0.8,
-    position = position_dodge(0.5)
-  ) +
-  
-  
-  labs(y = "Threshold (°)", x = "Set size") +
-  
-  
-  scale_color_manual(
-    values = c(ladder_radial = "#BB5566", setsize1_v_setsize1_v = "grey", 
-               ladder_tangential = "#BB5566", snake_radial = "#674EA7",
-               setsize1_h_setsize1_h = "black", snake_tangential = "#674EA7"),
-    name = "Gabor type"
-  ) +
-  
-  scale_y_continuous(limits = c(1, 4)) +
-  
-  scale_x_continuous(breaks = c(1, 2, 3, 5, 7), 
-                     labels = c("1", "2", "3", "5", "7"), limits = c(0.5, 7.5))+
-  
-  theme(
-    axis.title.x = element_text(color = "black", size = 14, face = "bold"),
-    axis.title.y = element_text(color = "black", size = 14, face = "bold"),
-    panel.border = element_blank(),
-    # remove panel grid lines
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    # remove panel background
-    panel.background = element_blank(),
-    # add axis line
-    axis.line = element_line(colour = "grey"),
-    # x,y axis tick labels
-    axis.text.x = element_text(size = 12, face = "bold"),
-    axis.text.y = element_text(size = 12, face = "bold"),
-    # legend size
-    legend.title = element_text(size = 12, face = "bold"),
-    legend.text = element_text(size = 12),
-    legend.key.size = unit(1, 'cm'),
-    # facet wrap title
-    strip.text.x = element_text(size = 12, face = "bold")
-  )
-  
-
-print(my_plot3)
-
-# ggsave(file = "testexp2.svg", plot = my_plot3, width = 5.85, height = 4.5, units = "in")
+# ggsave(file = "test2.svg", plot = my_plot, width = 8, height = 4, units = "in")
 
 
 # check threshold by participant
-my_plot3.0 <-  ggplot() +
+my_plot1.0 <-  ggplot() +
   
   geom_point(
     data = data_by_subject,
@@ -382,21 +193,21 @@ my_plot3.0 <-  ggplot() +
     position = position_dodge(0.5)
   ) +
   
-  # stat_smooth(
-  #   data = data_by_subject,
-  #   aes(
-  #     x = trials.setsize,
-  #     y = trials.intensity.mean,
-  #     group = full_condition2,
-  #     color = full_condition2
-  #   ),
-  #   method = "lm",
-  #   size = 3,
-  #   se = FALSE,
-  #   alpha = 0.5,
-  #   geom = "line"
-  # )+
-  # 
+  stat_smooth(
+    data = data_by_subject,
+    aes(
+      x = trials.setsize,
+      y = trials.intensity.mean,
+      group = full_condition2,
+      color = full_condition2
+    ),
+    method = "lm",
+    size = 3,
+    se = FALSE,
+    alpha = 0.5,
+    geom = "line"
+  )+
+
   
   labs(y = "Threshold (°)", x = "Set size") +
   
@@ -438,11 +249,13 @@ my_plot3.0 <-  ggplot() +
   facet_wrap(~ participant)
 
 
-print(my_plot3.0)
+print(my_plot1.0)
 
 # --------------------Exp3: 2 tasks - Threshold------------------------
 
 data_exp3 <- readxl::read_excel(path = file.choose())
+data_exp3 <- readxl::read_excel("../../data/gbr_sc_threshold3.xlsx")
+
 data_exp4 <- readxl::read_excel(path = file.choose())
 
 exp <- "exp3"
