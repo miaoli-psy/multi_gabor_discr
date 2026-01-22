@@ -8,7 +8,8 @@ setwd("d:/OneDrive/projects/multi_gabor_discr/src/analysis/")
 
 # read data
 # gabor_adjst_ori_alldata.csv
-data_exp4<- read.csv(file.choose())
+# data_exp4<- read.csv(file.choose())
+data_exp4 <- read_csv("../../data/gabor_adjst_ori_alldata.csv")
 
 data <- data_exp4 %>%
   dplyr::select(label, ori, participant, inner_resp, midd_resp, outer_resp)
@@ -325,6 +326,8 @@ plot <- ggplot() +
              ) 
   
 plot
+
+# ggsave(file = "plot_weight.svg", plot = plot, width = 12, height = 4.5, units = "in")
 
 
 
