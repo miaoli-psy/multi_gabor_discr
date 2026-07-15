@@ -107,3 +107,5 @@ run_multiple_lines/
 run_adjust_gabor_ori/
 run_gabor_staircase_fr/
 run_gabor_staircase_fr2/
+multigabors_e4_raw_trial_plots/
+raw_trial_plots/
