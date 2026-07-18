@@ -222,7 +222,7 @@ p_idx <- ggplot(per_pp, aes(x = arr, y = index, fill = arr)) +
   scale_color_manual(values = c(ladder = "#F28522", snake = "#674EA7")) +
   scale_x_discrete(labels = c(ladder = "Ladder", snake = "Snake")) +
   scale_y_continuous(limits = c(0, 1)) +
-  labs(x = NULL, y = "Integration Index") +
+  labs(x = NULL, y = "Binding") +
   theme(
     axis.title.x = element_text(color = "black", size = 14, face = "bold"),
     axis.title.y = element_text(color = "black", size = 14, face = "bold"),
@@ -235,6 +235,7 @@ p_idx <- ggplot(per_pp, aes(x = arr, y = index, fill = arr)) +
     axis.text.y = element_text(size = 14, face = "bold"),
     legend.title = element_text(size = 14, face = "bold"),
     legend.text = element_text(size = 12),
+    legend.position = "none",
     strip.text = element_text(size = 14, face = "bold"),
     panel.spacing = unit(1.0, "lines")
   )
@@ -244,8 +245,8 @@ if (FIT_BY_ORIENTATION) {
   p_idx <- p_idx + facet_wrap(~ abs_ori, labeller = label_both)
 }
 
-print(p_idx)
-# ggsave("p_idx.svg", p_idx, width = 6, height = 5, units = "in")
+p_idx
+# ggsave("p_idx.svg", p_idx, width = 3, height = 4, units = "in")
 
 
 
@@ -426,6 +427,6 @@ p_cor_compare <- ggplot(both_cor_df,
     legend.text = element_text(size = 10)
   )
 
-print(p_cor_compare)
+p_cor_compare
 # ggsave("fig_cor_compare.svg", p_cor_compare, width = 7, height = 6, units = "in")
 
