@@ -1,6 +1,9 @@
 library(tidyverse)
 library(gghalves)
 library(svglite)
+library(lme4)
+library(emmeans)
+
 
 setwd("d:/OneDrive/projects/multi_gabor_discr/src/analysis/")
 
@@ -159,22 +162,45 @@ r_mean_pts <- r_pp %>%
   group_by(arr, abs_ori, pair) %>%
   summarise(r = fisher_r(mean(z, na.rm = TRUE)), .groups = "drop")
 
-p_r_pp <- ggplot(r_pp, aes(x = arr, y = r, fill = arr)) +
-  geom_hline(yintercept = 0, colour = "grey80",
-             linewidth = 0.4, linetype = "dashed") +
-  geom_half_violin(side = "l", alpha = 0.3, width = 1,
-                   colour = "white", trim = FALSE) +
-  geom_line(aes(group = participant), colour = "grey", linewidth = 0.3) +
-  geom_point(aes(colour = arr), size = 1.8, alpha = 0.5) +
-  geom_point(data = r_mean_pts, aes(x = arr, y = r, colour = arr), size = 4) +
+p_r_pp <- ggplot(r_pp, 
+                 aes(x = arr, 
+                     y = r, 
+                     fill = arr)) +
+  geom_hline(yintercept = 0, 
+             colour = "grey80",
+             linewidth = 0.4, 
+             linetype = "dashed") +
+  geom_half_violin(side = "l",
+                   alpha = 0.3,
+                   width = 1,
+                   colour = "white", 
+                   trim = FALSE) +
+  geom_line(aes(group = participant),
+            colour = "grey", 
+            linewidth = 0.3) +
+  geom_point(aes(colour = arr),
+             size = 1.8, 
+             alpha = 0.5) +
+  geom_point(data = r_mean_pts, 
+             aes(x = arr, 
+                 y = r, 
+                 colour = arr), 
+             size = 4) +
   facet_grid(pair ~ abs_ori,
              labeller = labeller(abs_ori = function(v) paste0(v, "\u00b0"))) +
+  
   scale_fill_manual(values = PAL) +
+  
   scale_colour_manual(values = PAL) +
+  
   scale_x_discrete(labels = c(ladder = "Ladder", snake = "Snake")) +
+  
   coord_cartesian(ylim = c(-0.5, 1)) +
+  
   labs(x = NULL, y = "Correlation of adjustment errors (r)") +
+  
   theme_gabor() +
+  
   theme(legend.position = "none")
 
 p_r_pp
@@ -188,27 +214,49 @@ r_pp_collapsed <- r_pp %>%
 r_mean_collapsed <- r_pp_collapsed %>%
   group_by(arr, pair) %>%
   summarise(r = fisher_r(mean(z, na.rm = TRUE)), .groups = "drop")
+r_mean_collapsed
 
-p_fig3a <- ggplot(r_pp_collapsed, aes(x = arr, y = r, fill = arr)) +
-  geom_hline(yintercept = 0, colour = "grey80",
-             linewidth = 0.4, linetype = "dashed") +
-  geom_half_violin(side = "l", alpha = 0.3, width = 1,
-                   colour = "white", trim = FALSE) +
-  geom_line(aes(group = participant), colour = "grey", linewidth = 0.4) +
-  geom_point(aes(colour = arr), size = 2.2, alpha = 0.5) +
-  geom_point(data = r_mean_collapsed, aes(x = arr, y = r, colour = arr),
+p_fig3a <- ggplot(r_pp_collapsed, 
+                  aes(x = arr, 
+                      y = r, 
+                      fill = arr)) +
+  geom_hline(yintercept = 0,
+             colour = "grey80",
+             linewidth = 0.4, 
+             linetype = "dashed") +
+  geom_half_violin(side = "l", 
+                   alpha = 0.3,
+                   width = 1,
+                   colour = "white", 
+                   trim = FALSE) +
+  geom_line(aes(group = participant),
+            colour = "grey",
+            linewidth = 0.4) +
+  geom_point(aes(colour = arr), 
+             size = 2.2, 
+             alpha = 0.5) +
+  geom_point(data = r_mean_collapsed, 
+             aes(x = arr, 
+                 y = r, 
+                 colour = arr),
              size = 5) +
-  facet_wrap(~ pair, nrow = 1) +
+  facet_wrap(~ pair, 
+             nrow = 1) +
   scale_fill_manual(values = PAL) +
+  
   scale_colour_manual(values = PAL) +
+  
   scale_x_discrete(labels = c(ladder = "Ladder", snake = "Snake")) +
+  
   coord_cartesian(ylim = c(-0.1, 1)) +
+  
   labs(x = NULL, y = "Correlation of adjustment errors (r)") +
+  
   theme_gabor() +
+  
   theme(legend.position = "none")
 
 p_fig3a
 
-# ggsave("p_fig3a.svg",       p_fig3a, width = 7.5, height = 3.6, units = "in")
-# ggsave("p_corr_per_pp.svg", p_r_pp,  width = 7.5, height = 8.5, units = "in")
+# ggsave("p_r_pp.svg",p_r_pp, width = 7, height = 7, units = "in")
 
