@@ -225,6 +225,7 @@ idx_across_pp <- per_pp %>%
   group_by(arr) %>%
   summarise(avg_index = mean(index, na.rm = TRUE), .groups = "drop")
 
+#fig4a
 p_idx <- ggplot(per_pp, aes(x = arr, y = index, fill = arr)) +
   geom_half_violin(
     side = "l",
