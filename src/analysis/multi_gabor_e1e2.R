@@ -500,9 +500,9 @@ slope_TS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition24"]
 slope_TS
 
 se_TS <- sqrt(vcov_matrix["setsize", "setsize"] +
-                vcov_matrix["setsize:full_condition23",
-                            "setsize:full_condition23"] +
-                2 * vcov_matrix["setsize", "setsize:full_condition23"])
+                vcov_matrix["setsize:full_condition24",
+                            "setsize:full_condition24"] +
+                2 * vcov_matrix["setsize", "setsize:full_condition24"])
 t_TS <- slope_TS / se_TS
 p_TS <- 2 * (1 - pnorm(abs(t_TS)))
 
