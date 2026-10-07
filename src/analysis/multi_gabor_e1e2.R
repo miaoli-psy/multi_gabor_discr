@@ -245,7 +245,9 @@ sjPlot::tab_model(
 
 # test other set size 2, 3, 5, 7
 # here set size as continous
-data_exc_ss1$setsize <- as.numeric(data_exc_ss1$setsize)
+data_exc_ss1$setsize <- as.numeric(
+  as.character(data_exc_ss1$setsize)
+)
 
 # Dummy
 contrasts(data_exc_ss1$full_condition2) = contr.treatment(4)
@@ -466,63 +468,114 @@ summary(model)
 vcov_matrix <- vcov(model)
 
 
-# get slopes, test against 0
-fixed_effects <- lme4::fixef(model)
 
-slope_RL <- fixed_effects["setsize"]
-se_RL <- sqrt(vcov_matrix["setsize", "setsize"])
-t_RL <- slope_RL / se_RL
-p_RL <- 2 * (1 - pnorm(abs(t_RL)))
+# get slopes
+library(emmeans)
 
+# asymptotic z tests
+emmeans::emm_options(lmer.df = "asymptotic")
 
-
-slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition22"]
-
-se_RS <- sqrt(vcov_matrix["setsize", "setsize"] +
-                vcov_matrix["setsize:full_condition22",
-                            "setsize:full_condition22"] +
-                2 * vcov_matrix["setsize", "setsize:full_condition22"])
-t_RS <- slope_RS / se_RS
-p_RS <- 2 * (1 - pnorm(abs(t_RS)))
-
-
-slope_TL <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition23"]
-
-se_TL <- sqrt(vcov_matrix["setsize", "setsize"] +
-                vcov_matrix["setsize:full_condition23",
-                            "setsize:full_condition23"] +
-                2 * vcov_matrix["setsize", "setsize:full_condition23"])
-t_TL <- slope_TL / se_TL
-p_TL <- 2 * (1 - pnorm(abs(t_TL)))
-
-
-slope_TS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition24"]
-slope_TS
-
-se_TS <- sqrt(vcov_matrix["setsize", "setsize"] +
-                vcov_matrix["setsize:full_condition24",
-                            "setsize:full_condition24"] +
-                2 * vcov_matrix["setsize", "setsize:full_condition24"])
-t_TS <- slope_TS / se_TS
-p_TS <- 2 * (1 - pnorm(abs(t_TS)))
-
-# adjust p
-
-p_vals <- c(p_RS, p_RL, p_TS, p_TL)
-p_values_corrected <- p.adjust(p_vals, method = "holm")
-
-# results into a dataframe
-results_df <- data.frame(
-  Condition = c("RL", "RS", "TL", "TS"),
-  Slope = c(slope_RL, slope_RS, slope_TL, slope_TS),
-  SE = c(se_RL, se_RS, se_TL, se_TS),
-  t_value = c(t_RL, t_RS, t_TL, t_TS),
-  p_value = c(p_RL, p_RS, p_TL, p_TS)
+# estimated Set Size slope in each condition
+setsize_trends <- emtrends(
+  model,
+  ~ full_condition2,
+  var = "setsize"
 )
 
-# corrected p
-results_df$p_value_corrected <- p.adjust(results_df$p_value, method = "holm")
-results_df
+# Show the four slopes
+setsize_trends
+
+# Test each slope against zero
+test(
+  setsize_trends,
+  null = 0,
+  adjust = "holm"
+)
+
+# slope differneces
+slope_differences <- contrast(
+  setsize_trends,
+  method = list(
+    # Snake vs Ladder within radial arrays
+    "Radial: Snake - Ladder" =
+      c(-1, 1, 0, 0),
+    
+    # Snake vs Ladder within tangential arrays
+    "Tangential: Snake - Ladder" =
+      c(0, 0, -1, 1),
+    
+    # Radial vs tangential within Snakes
+    "Snake: Radial - Tangential" =
+      c(0, 1, 0, -1),
+    
+    # Radial vs tangential within Ladders
+    "Ladder: Radial - Tangential" =
+      c(1, 0, -1, 0)
+  ),
+  adjust = "holm"
+)
+
+summary(
+  slope_differences,
+  infer = TRUE
+)
+# # get slopes, test against 0 - manually calcualted, the same as above
+# fixed_effects <- lme4::fixef(model)
+# 
+# slope_RL <- fixed_effects["setsize"]
+# se_RL <- sqrt(vcov_matrix["setsize", "setsize"])
+# t_RL <- slope_RL / se_RL
+# p_RL <- 2 * (1 - pnorm(abs(t_RL)))
+# 
+# 
+# 
+# slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition22"]
+# 
+# se_RS <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                 vcov_matrix["setsize:full_condition22",
+#                             "setsize:full_condition22"] +
+#                 2 * vcov_matrix["setsize", "setsize:full_condition22"])
+# t_RS <- slope_RS / se_RS
+# p_RS <- 2 * (1 - pnorm(abs(t_RS)))
+# 
+# 
+# slope_TL <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition23"]
+# 
+# se_TL <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                 vcov_matrix["setsize:full_condition23",
+#                             "setsize:full_condition23"] +
+#                 2 * vcov_matrix["setsize", "setsize:full_condition23"])
+# t_TL <- slope_TL / se_TL
+# p_TL <- 2 * (1 - pnorm(abs(t_TL)))
+# 
+# 
+# slope_TS <- fixed_effects["setsize"] + fixed_effects["setsize:full_condition24"]
+# slope_TS
+# 
+# se_TS <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                 vcov_matrix["setsize:full_condition24",
+#                             "setsize:full_condition24"] +
+#                 2 * vcov_matrix["setsize", "setsize:full_condition24"])
+# t_TS <- slope_TS / se_TS
+# p_TS <- 2 * (1 - pnorm(abs(t_TS)))
+# 
+# # adjust p
+# 
+# p_vals <- c(p_RS, p_RL, p_TS, p_TL)
+# p_values_corrected <- p.adjust(p_vals, method = "holm")
+# 
+# # results into a dataframe
+# results_df <- data.frame(
+#   Condition = c("RL", "RS", "TL", "TS"),
+#   Slope = c(slope_RL, slope_RS, slope_TL, slope_TS),
+#   SE = c(se_RL, se_RS, se_TL, se_TS),
+#   t_value = c(t_RL, t_RS, t_TL, t_TS),
+#   p_value = c(p_RL, p_RS, p_TL, p_TS)
+# )
+# 
+# # corrected p
+# results_df$p_value_corrected <- p.adjust(results_df$p_value, method = "holm")
+# results_df
 
 
 sjPlot::tab_model(

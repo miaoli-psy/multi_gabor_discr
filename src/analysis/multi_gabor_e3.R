@@ -372,6 +372,41 @@ anova(model, model2)
 
 summary(model)
 
+
+
+# Exp3 orientation-discrimination task:
+# Set Size slopes and direct slope comparison
+
+emmeans::emm_options(lmer.df = "asymptotic")
+
+# Estimate Set Size slope separately for Ladder and Snake
+setsize_trends_exp3_orient <- emmeans::emtrends(
+  model,
+  ~ gabor_type,
+  var = "setsize"
+)
+
+setsize_trends_exp3_orient
+
+# Test each slope against zero
+emmeans::test(
+  setsize_trends_exp3_orient,
+  null = 0,
+  adjust = "holm"
+)
+
+# Direct comparison: Snake vs Ladder slope
+emmeans::contrast(
+  setsize_trends_exp3_orient,
+  method = "pairwise",
+  adjust = "holm"
+)
+
+
+
+
+
+
 sjPlot::tab_model(
   model,
   p.style = 'scientific_stars',
@@ -544,42 +579,44 @@ summary(emms3, infer = TRUE)
 
 
 
-# get slopes, test against 0
-vcov_matrix <- vcov(model)
-fixed_effects <- lme4::fixef(model)
+# # get slopes, test against 0
+# vcov_matrix <- vcov(model)
+# fixed_effects <- lme4::fixef(model)
+# 
+# slope_RL <- fixed_effects["setsize"]
+# se_RL <- sqrt(vcov_matrix["setsize", "setsize"])
+# t_RL <- slope_RL / se_RL
+# p_RL <- 2 * (1 - pnorm(abs(t_RL)))
+# 
+# 
+# 
+# slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:gabor_typesnake"]
+# 
+# se_RS <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                 vcov_matrix["setsize:gabor_typesnake",
+#                             "setsize:gabor_typesnake"] +
+#                 2 * vcov_matrix["setsize", "setsize:gabor_typesnake"])
+# t_RS <- slope_RS / se_RS
+# p_RS <- 2 * (1 - pnorm(abs(t_RS)))
+# 
+# 
+# # adjust p
+# 
+# p_vals <- c(p_RS, p_RL)
+# p_values_corrected <- p.adjust(p_vals, method = "holm")
+# 
+# 
+# results <- data.frame(
+#   Condition = c("RS", "RL"),
+#   Slope = c(slope_RS, slope_RL),
+#   SE = c(se_RS, se_RL),
+#   t_value = c(t_RS, t_RL),
+#   p_value = c(p_RS, p_RL),
+#   adj_p = p_values_corrected
+# )
+# results
 
-slope_RL <- fixed_effects["setsize"]
-se_RL <- sqrt(vcov_matrix["setsize", "setsize"])
-t_RL <- slope_RL / se_RL
-p_RL <- 2 * (1 - pnorm(abs(t_RL)))
 
-
-
-slope_RS <- fixed_effects["setsize"] + fixed_effects["setsize:gabor_typesnake"]
-
-se_RS <- sqrt(vcov_matrix["setsize", "setsize"] +
-                vcov_matrix["setsize:gabor_typesnake",
-                            "setsize:gabor_typesnake"] +
-                2 * vcov_matrix["setsize", "setsize:gabor_typesnake"])
-t_RS <- slope_RS / se_RS
-p_RS <- 2 * (1 - pnorm(abs(t_RS)))
-
-
-# adjust p
-
-p_vals <- c(p_RS, p_RL)
-p_values_corrected <- p.adjust(p_vals, method = "holm")
-
-
-results <- data.frame(
-  Condition = c("RS", "RL"),
-  Slope = c(slope_RS, slope_RL),
-  SE = c(se_RS, se_RL),
-  t_value = c(t_RS, t_RL),
-  p_value = c(p_RS, p_RL),
-  adj_p = p_values_corrected
-)
-results
 
 # model uniformaty judgment task
 
@@ -620,6 +657,35 @@ model_glmm <- lme4::glmer(resp_no ~ setsize * gabor_type2 * correct + (1 | parti
 
 model_glmm2 <- lme4::glmer(resp_no ~ setsize * gabor_type2 + (1 | participant),
                            data = data_exp3_uniformity, family = binomial)
+
+
+# Full model: includes the 3-way interaction
+model_glmm <- lme4::glmer(
+  resp_no ~ setsize * gabor_type2 * correct +
+    (1 | participant),
+  data = data_exp3_uniformity,
+  family = binomial
+)
+
+# Reduced model: all main effects + all 2-way interactions,
+# but NO 3-way interaction
+model_glmm_no3way <- lme4::glmer(
+  resp_no ~
+    setsize * gabor_type2 +
+    setsize * correct +
+    gabor_type2 * correct +
+    (1 | participant),
+  data = data_exp3_uniformity,
+  family = binomial
+)
+
+anova(
+  model_glmm_no3way,
+  model_glmm,
+  test = "Chisq"
+)
+
+
 anova(model_glmm, model_glmm2)
 
 summary(model_glmm)
@@ -632,6 +698,61 @@ sjPlot::tab_model(
   digits = 3
 ) 
 
+# Exp3 uniformity judgment:
+# Set Size slopes for each Arrangement × Correctness condition
+
+# selected model
+model_glmm_selected <- model_glmm_no3way
+
+# Set Size slopes for all four Arrangement × Correctness conditions
+setsize_trends_uniformity <- emmeans::emtrends(
+  model_glmm_selected,
+  ~ gabor_type2 * correct,
+  var = "setsize"
+)
+
+setsize_trends_uniformity
+
+# Test each slope against zero
+emmeans::test(
+  setsize_trends_uniformity,
+  null = 0,
+  adjust = "holm"
+)
+
+
+# Snake vs Ladder Set Size slopes
+# separately for incorrect and correct orientation trials
+
+setsize_trends_by_correct <- emmeans::emtrends(
+  model_glmm_selected,
+  ~ gabor_type2 | correct,
+  var = "setsize"
+)
+
+slope_diff_arrangement <- pairs(
+  setsize_trends_by_correct
+)
+
+# Apply Holm correction across the two Snake/Ladder comparisons
+summary(
+  slope_diff_arrangement,
+  by = NULL,
+  adjust = "holm",
+  infer = TRUE
+)
+
+
+emms_uniformity <- emmeans::emmeans(
+  model_glmm_selected,
+  ~ gabor_type2 | correct
+)
+
+emmeans::contrast(
+  emms_uniformity,
+  method = "pairwise",
+  adjust = "tukey"
+)
 # model predictions
 # predictions <- ggeffects::ggpredict(
 #   model_glmm, 
@@ -719,79 +840,79 @@ sjPlot::tab_model(
 # r2 <- MuMIn::r.squaredGLMM(model_glmm)
 # r2
 
-# slopes
+# # slopes
+# 
+# fixed_effects <- lme4::fixef(model_glmm)
+# 
+# beta_setsize <- fixed_effects["setsize"]
+# beta_setsize_gabor_snake <- fixed_effects["setsize:gabor_type2snake"]
+# beta_setsize_correct <- fixed_effects["setsize:correct1"]
+# beta_setsize_gabor_correct <- fixed_effects["setsize:gabor_type2snake:correct1"]
+# 
+# 
+# slope_ladder_correct0 <- beta_setsize
+# slope_ladder_correct1 <- beta_setsize + beta_setsize_correct
+# slope_snake_correct0 <- beta_setsize + beta_setsize_gabor_snake
+# slope_snake_correct1 <- beta_setsize + beta_setsize_gabor_snake + beta_setsize_correct + beta_setsize_gabor_correct
+# 
+# 
+# # stats test
+# 
+# vcov_matrix <- vcov(model_glmm)
+# 
+# # se
+# se_ladder_correct0 <- sqrt(vcov_matrix["setsize", "setsize"])
+# se_ladder_correct1 <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                              vcov_matrix["setsize:correct1", "setsize:correct1"] +
+#                              2 * vcov_matrix["setsize", "setsize:correct1"])
+# 
+# se_snake_correct0 <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                             vcov_matrix["setsize:gabor_type2snake", "setsize:gabor_type2snake"] +
+#                             2 * vcov_matrix["setsize", "setsize:gabor_type2snake"])
+# 
+# se_snake_correct1 <- sqrt(vcov_matrix["setsize", "setsize"] +
+#                             vcov_matrix["setsize:gabor_type2snake", "setsize:gabor_type2snake"] +
+#                             vcov_matrix["setsize:correct1", "setsize:correct1"] +
+#                             vcov_matrix["setsize:gabor_type2snake:correct1", "setsize:gabor_type2snake:correct1"] +
+#                             2 * vcov_matrix["setsize", "setsize:gabor_type2snake"] +
+#                             2 * vcov_matrix["setsize", "setsize:correct1"] +
+#                             2 * vcov_matrix["setsize:gabor_type2snake", "setsize:correct1"] +
+#                             2 * vcov_matrix["setsize", "setsize:gabor_type2snake:correct1"])
+# 
+# # ts
+# t_ladder_c0 <- slope_ladder_correct0 / se_ladder_correct0
+# t_ladder_c1 <- slope_ladder_correct1 / se_ladder_correct1
+# t_snake_c0 <- slope_snake_correct0 / se_snake_correct0
+# t_snake_c1 <- slope_snake_correct1 / se_snake_correct1
+# 
+# # ps
+# p_ladder_c0 <- 2 * (1 - pnorm(abs(t_ladder_c0)))
+# p_ladder_c1 <- 2 * (1 - pnorm(abs(t_ladder_c1)))
+# p_snake_c0 <- 2 * (1 - pnorm(abs(t_snake_c0)))
+# p_snake_c1 <- 2 * (1 - pnorm(abs(t_snake_c1)))
+# 
+# 
+# p_vals <- c(p_ladder_c0, p_ladder_c1,p_snake_c0, p_snake_c1)
+# p_values_corrected <- p.adjust(p_vals, method = "holm")
+# 
+# # results to df
+# results <- data.frame(
+#   Condition = c("ladder_0", "ladder_1", "snake_0", "snake_1"),
+#   Slope = c(slope_ladder_correct0, slope_ladder_correct1, slope_snake_correct0, slope_snake_correct1),
+#   SE = c(se_ladder_correct0, se_ladder_correct1, se_snake_correct0, se_snake_correct1),
+#   t_value = c(t_ladder_c0, t_ladder_c1, t_snake_c0, t_snake_c1),
+#   p_value = c(p_ladder_c0, p_ladder_c1, p_snake_c0, p_snake_c1),
+#   adj_p = p_values_corrected
+# )
+# results
 
-fixed_effects <- lme4::fixef(model_glmm)
 
-beta_setsize <- fixed_effects["setsize"]
-beta_setsize_gabor_snake <- fixed_effects["setsize:gabor_type2snake"]
-beta_setsize_correct <- fixed_effects["setsize:correct1"]
-beta_setsize_gabor_correct <- fixed_effects["setsize:gabor_type2snake:correct1"]
-
-
-slope_ladder_correct0 <- beta_setsize
-slope_ladder_correct1 <- beta_setsize + beta_setsize_correct
-slope_snake_correct0 <- beta_setsize + beta_setsize_gabor_snake
-slope_snake_correct1 <- beta_setsize + beta_setsize_gabor_snake + beta_setsize_correct + beta_setsize_gabor_correct
-
-
-# stats test
-
-vcov_matrix <- vcov(model_glmm)
-
-# se
-se_ladder_correct0 <- sqrt(vcov_matrix["setsize", "setsize"])
-se_ladder_correct1 <- sqrt(vcov_matrix["setsize", "setsize"] +
-                             vcov_matrix["setsize:correct1", "setsize:correct1"] +
-                             2 * vcov_matrix["setsize", "setsize:correct1"])
-
-se_snake_correct0 <- sqrt(vcov_matrix["setsize", "setsize"] +
-                            vcov_matrix["setsize:gabor_type2snake", "setsize:gabor_type2snake"] +
-                            2 * vcov_matrix["setsize", "setsize:gabor_type2snake"])
-
-se_snake_correct1 <- sqrt(vcov_matrix["setsize", "setsize"] +
-                            vcov_matrix["setsize:gabor_type2snake", "setsize:gabor_type2snake"] +
-                            vcov_matrix["setsize:correct1", "setsize:correct1"] +
-                            vcov_matrix["setsize:gabor_type2snake:correct1", "setsize:gabor_type2snake:correct1"] +
-                            2 * vcov_matrix["setsize", "setsize:gabor_type2snake"] +
-                            2 * vcov_matrix["setsize", "setsize:correct1"] +
-                            2 * vcov_matrix["setsize:gabor_type2snake", "setsize:correct1"] +
-                            2 * vcov_matrix["setsize", "setsize:gabor_type2snake:correct1"])
-
-# ts
-t_ladder_c0 <- slope_ladder_correct0 / se_ladder_correct0
-t_ladder_c1 <- slope_ladder_correct1 / se_ladder_correct1
-t_snake_c0 <- slope_snake_correct0 / se_snake_correct0
-t_snake_c1 <- slope_snake_correct1 / se_snake_correct1
-
-# ps
-p_ladder_c0 <- 2 * (1 - pnorm(abs(t_ladder_c0)))
-p_ladder_c1 <- 2 * (1 - pnorm(abs(t_ladder_c1)))
-p_snake_c0 <- 2 * (1 - pnorm(abs(t_snake_c0)))
-p_snake_c1 <- 2 * (1 - pnorm(abs(t_snake_c1)))
-
-
-p_vals <- c(p_ladder_c0, p_ladder_c1,p_snake_c0, p_snake_c1)
-p_values_corrected <- p.adjust(p_vals, method = "holm")
-
-# results to df
-results <- data.frame(
-  Condition = c("ladder_0", "ladder_1", "snake_0", "snake_1"),
-  Slope = c(slope_ladder_correct0, slope_ladder_correct1, slope_snake_correct0, slope_snake_correct1),
-  SE = c(se_ladder_correct0, se_ladder_correct1, se_snake_correct0, se_snake_correct1),
-  t_value = c(t_ladder_c0, t_ladder_c1, t_snake_c0, t_snake_c1),
-  p_value = c(p_ladder_c0, p_ladder_c1, p_snake_c0, p_snake_c1),
-  adj_p = p_values_corrected
-)
-results
-
-
-# pairwise comparisons
-emms <- emmeans::emmeans(
-  model_glmm,
-  list(pairwise ~ gabor_type2 | correct),
-  adjust = "tukey"
-)
-
-summary(emms)
+# # pairwise comparisons
+# emms <- emmeans::emmeans(
+#   model_glmm,
+#   list(pairwise ~ gabor_type2 | correct),
+#   adjust = "tukey"
+# )
+# 
+# summary(emms)
 
